@@ -19,6 +19,7 @@ demo_results/
 demo_results_parallel/
 *.pyc
 demo_data/lafan/
+demo_data/crisp_terrain/
 converted_res/
 data_utils/lafan1
 *.sh

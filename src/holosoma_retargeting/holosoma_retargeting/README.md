@@ -4,6 +4,19 @@ This repository provides tools for retargeting human motion data to humanoid rob
 
 **Data Requirements**: The retargeting pipeline requires motion data in world joint positions. For custom data, you need to prepare world joint positions in shape `(T, J, 3)` where T is the number of frames and J is the number of joints, and modify `demo_joints` and `joints_mapping` defined in `config_types/data_type.py`.
 
+## CRISP Real2Sim2Real Terrain
+
+CRISP terrain conversion lives in `crisp/`. It converts CRISP z-up
+`scene_mesh_sqs/pieces/*.obj` outputs into Holosoma climbing folders containing
+`multi_boxes.obj`, `multi_boxes.urdf`, `box_assets.xml`, `box_body.xml`, and
+`g1_29dof_spherehand_w_multi_boxes.xml`.
+
+Important contract: the converter faithfully copies z-up CRISP geometry. It does
+not rotate, translate, rescale, align, or viewer-correct the scene. Each terrain
+piece is represented as a separate URDF collision link and separate MuJoCo mesh
+geom, so collision is computed per piece instead of through one combined convex
+hull. See `crisp/README.md` for conversion and retargeting commands.
+
 ## Single Sequence Motion Retargeting
 
 ```bash
