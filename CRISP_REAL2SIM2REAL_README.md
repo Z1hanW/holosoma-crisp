@@ -99,6 +99,16 @@ CRISP climbing motion is already video-frame aligned with the z-up scene, so the
 climbing loader keeps every frame (`downsample = 1`). Do not reuse the legacy
 Holosoma mocap `::4` downsample for these inputs.
 
+The retargeting frame is scaled from nominal human size to G1 size. With the
+current G1 config this is:
+
+```text
+smpl_scale = robot_height / default_human_height = 1.32 / 1.78 = 0.7415730337
+```
+
+Human joints, terrain sampling points, URDF collision meshes, and MJCF scene
+meshes must all use this same scale during retargeting and visualization.
+
 ## Run All Available Stair Cases
 
 The batch script has been adjusted so climbing tasks find `*/*.npy` regardless
@@ -169,7 +179,7 @@ Current fallback summary:
 python viser_player.py \
   --port 9303 \
   --robot-urdf models/g1/g1_29dof_spherehand.urdf \
-  --object-urdf demo_data/crisp_terrain_zup_motion_aligned/stair_75/multi_boxes.urdf \
+  --object-urdf demo_data/crisp_terrain_zup_motion_aligned/stair_75/multi_boxes_scaled_0.74_0.74_0.74.urdf \
   --qpos-npz demo_results_parallel/g1/climbing/crisp_terrain_zup_motion_aligned/stair_75_original.npz \
   --no-assume-object-in-qpos \
   --grid-width 20 \
@@ -183,3 +193,10 @@ files during climbing setup. That is Holosoma's retargeting normalization. The
 CRISP converter itself remains faithful to the post-scene z-up frame: input
 z-up geometry is copied, HMR joints receive the same saved scene transform, and
 no additional viewer-side transform or scale is applied.
+
+Retargeted `qpos` lives in the scaled G1 frame. When visualizing or using the
+retargeted output for MuJoCo terrain traversal, use the generated scaled scene
+files, for example `multi_boxes_scaled_0.74_0.74_0.74.urdf` and
+`g1_29dof_spherehand_w_multi_boxes_scaled_0.74_0.74_0.74.xml`. Use the unscaled
+`multi_boxes.urdf` only for inspecting the raw converted CRISP geometry before
+retargeting.
