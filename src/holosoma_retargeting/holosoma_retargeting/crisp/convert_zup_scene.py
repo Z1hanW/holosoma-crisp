@@ -39,6 +39,15 @@ class ConvertedSequence:
     motion_metadata: dict | None = None
 
 
+@dataclass(frozen=True)
+class SceneTransform:
+    rotation: np.ndarray
+    translation: np.ndarray
+    source_root: Path
+    rotation_path: Path
+    translation_path: Path
+
+
 def _relpath(path: Path, start: Path) -> str:
     return Path(os.path.relpath(path.resolve(), start.resolve())).as_posix()
 
@@ -124,6 +133,41 @@ def _sequence_name_from_scene_dir(scene_dir: Path) -> str:
             return scene_dir.parent.parent.name
         return scene_dir.parent.name
     return scene_dir.name
+
+
+def _load_scene_transform(scene_dir: Path) -> SceneTransform | None:
+    candidates = []
+    if scene_dir.name == "scene_mesh_sqs":
+        candidates.append(scene_dir.parent)
+    candidates.extend([scene_dir, scene_dir.parent, scene_dir.parent.parent])
+
+    for root in dict.fromkeys(path.resolve() for path in candidates):
+        rotation_path = root / "world_rotation.npy"
+        translation_path = root / "shared_translation.txt"
+        if not rotation_path.is_file() or not translation_path.is_file():
+            continue
+        rotation = np.asarray(np.load(rotation_path), dtype=np.float32)
+        translation = np.asarray(np.loadtxt(translation_path), dtype=np.float32).reshape(-1)
+        if rotation.shape != (3, 3):
+            raise ValueError(f"Bad world_rotation shape in {rotation_path}: {rotation.shape}")
+        if translation.shape != (3,):
+            raise ValueError(f"Bad shared_translation shape in {translation_path}: {translation.shape}")
+        return SceneTransform(
+            rotation=rotation,
+            translation=translation,
+            source_root=root,
+            rotation_path=rotation_path,
+            translation_path=translation_path,
+        )
+    return None
+
+
+def _copy_scene_transform(scene_transform: SceneTransform | None, output_dir: Path) -> None:
+    if scene_transform is None:
+        return
+    shutil.copy2(scene_transform.rotation_path, output_dir / "world_rotation.npy")
+    shutil.copy2(scene_transform.translation_path, output_dir / "shared_translation.txt")
+    np.savetxt(output_dir / "world_rotation.txt", scene_transform.rotation, fmt="%.8f")
 
 
 def _robot_meshdir_abs(robot_xml: Path) -> Path | None:
@@ -330,6 +374,7 @@ def _write_crisp_smplx_motion(
     hmr_key: str,
     source_filename: str,
     output_filename: str,
+    scene_transform: SceneTransform | None,
 ) -> tuple[Path | None, dict | None]:
     if crisp_hmr_root is None:
         return None, None
@@ -337,14 +382,22 @@ def _write_crisp_smplx_motion(
     source_path = _find_crisp_smplx_motion(sequence, crisp_hmr_root, hmr_key, source_filename)
     if source_path is None:
         return None, None
+    if scene_transform is None:
+        raise FileNotFoundError(
+            f"Found CRISP HMR motion for {sequence} at {source_path}, but could not find "
+            "world_rotation.npy/shared_translation.txt next to the z-up scene. Refusing to "
+            "write unaligned motion."
+        )
 
     source_data = np.load(source_path)
     if "global_joint_positions" not in source_data:
         raise KeyError(f"{source_path} does not contain global_joint_positions")
 
-    joints = np.asarray(source_data["global_joint_positions"], dtype=np.float32)
-    if joints.ndim != 3 or joints.shape[-1] != 3:
-        raise ValueError(f"Expected global_joint_positions shape (T, J, 3), got {joints.shape} in {source_path}")
+    joints_raw = np.asarray(source_data["global_joint_positions"], dtype=np.float32)
+    if joints_raw.ndim != 3 or joints_raw.shape[-1] != 3:
+        raise ValueError(f"Expected global_joint_positions shape (T, J, 3), got {joints_raw.shape} in {source_path}")
+
+    joints = joints_raw @ scene_transform.rotation.T + scene_transform.translation.reshape(1, 1, 3)
 
     output_name = output_filename.format(sequence=sequence)
     if not output_name.endswith(".npy"):
@@ -358,7 +411,15 @@ def _write_crisp_smplx_motion(
         "output": output_path.name,
         "format": "smplx",
         "shape": list(joints.shape),
-        "coordinate_policy": "faithful_copy_no_rotation_no_translation_no_scale",
+        "coordinate_policy": "transformed_to_zup_scene_frame_no_scale",
+        "transform": {
+            "formula": "joints_zup = joints_raw @ world_rotation.T + shared_translation",
+            "world_rotation": scene_transform.rotation.tolist(),
+            "shared_translation": scene_transform.translation.tolist(),
+            "source_root": str(scene_transform.source_root),
+            "world_rotation_file": str(scene_transform.rotation_path),
+            "shared_translation_file": str(scene_transform.translation_path),
+        },
         "source_height_key": float(source_data["height"]) if "height" in source_data else None,
         "median_frame_z_extent": float(np.median(z_extent_per_frame)),
         "mean_frame_z_extent": float(np.mean(z_extent_per_frame)),
@@ -403,6 +464,9 @@ def convert_sequence(
             if path.exists():
                 path.unlink()
 
+    scene_transform = _load_scene_transform(scene_dir)
+    _copy_scene_transform(scene_transform, output_dir)
+
     pieces = _copy_and_load_pieces(scene_dir, output_dir, overwrite)
     object_mesh = output_dir / f"{object_name}.obj"
     bounds_min, bounds_max = _write_combined_mesh(pieces, object_mesh)
@@ -425,6 +489,7 @@ def convert_sequence(
             hmr_key=hmr_key,
             source_filename=crisp_hmr_motion_filename,
             output_filename=motion_output_filename,
+            scene_transform=scene_transform,
         )
     if require_motion and motion_file is None:
         raise FileNotFoundError(
@@ -451,6 +516,17 @@ def convert_sequence(
         "source_scene_dir": str(converted.source_scene_dir),
         "coordinate_frame": "z-up",
         "geometry_policy": "faithful_copy_no_rotation_no_translation_no_viewer_scale",
+        "scene_transform": (
+            {
+                "formula": "points_zup = points_raw @ world_rotation.T + shared_translation",
+                "source_root": str(scene_transform.source_root),
+                "world_rotation": "world_rotation.npy",
+                "world_rotation_txt": "world_rotation.txt",
+                "shared_translation": "shared_translation.txt",
+            }
+            if scene_transform is not None
+            else None
+        ),
         "object_name": object_name,
         "piece_count": converted.piece_count,
         "bounds_min": converted.bounds_min,

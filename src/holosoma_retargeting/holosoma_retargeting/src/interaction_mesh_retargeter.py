@@ -747,11 +747,17 @@ class InteractionMeshRetargeter:
 
         # -------- Solve with Clarabel --------
         solver_kwargs = {"verbose": verbose}
-        problem.solve(solver=cp.CLARABEL, **solver_kwargs)
+        try:
+            problem.solve(solver=cp.CLARABEL, **solver_kwargs)
+        except cp.error.SolverError as exc:
+            raise RuntimeError(f"CVXPY solver failed: {exc}") from exc
         if (problem.status not in (cp.OPTIMAL, cp.OPTIMAL_INACCURATE)) and init_t:
             constraints = [c for c in constraints if not isinstance(c, cp.constraints.second_order.SOC)]
             problem = cp.Problem(cp.Minimize(cp.sum(obj_terms)), constraints)
-            problem.solve(solver=cp.CLARABEL, **solver_kwargs)
+            try:
+                problem.solve(solver=cp.CLARABEL, **solver_kwargs)
+            except cp.error.SolverError as exc:
+                raise RuntimeError(f"CVXPY solver failed: {exc}") from exc
 
         if problem.status not in (cp.OPTIMAL, cp.OPTIMAL_INACCURATE):
             raise RuntimeError(f"CVXPY solve failed: {problem.status}")

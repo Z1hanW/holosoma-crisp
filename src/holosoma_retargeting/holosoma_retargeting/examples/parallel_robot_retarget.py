@@ -93,6 +93,15 @@ def find_files(data_dir: Path, data_format: str, object_name: str | None = None)
     return sorted(files)
 
 
+def find_climbing_files(data_dir: Path, data_format: str) -> list[str]:
+    files = sorted(Path(data_dir).glob("*/*.npy"))
+    if data_format == "smplx":
+        canonical = [p for p in files if p.stem == p.parent.name]
+        if canonical:
+            return [str(p) for p in canonical]
+    return [str(p) for p in files]
+
+
 def generate_augmentation_configs(task_type: str, augmentation: bool = True):
     """Generate augmentation configurations based on task type."""
     if task_type == "robot_only":
@@ -327,7 +336,7 @@ def main(cfg: ParallelRetargetingConfig) -> None:
         cfg.motion_data_config = MotionDataConfig(data_format=data_format, robot_type=robot)
 
     if task_type == "climbing":
-        files = sorted(str(p) for p in Path(data_dir).glob("*/*.npy"))
+        files = find_climbing_files(data_dir, data_format)
     elif task_type == "robot_only":
         files = find_files(data_dir, data_format)
     else:

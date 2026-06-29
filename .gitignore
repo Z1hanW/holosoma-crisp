@@ -31,6 +31,9 @@ src/holosoma/holosoma/data/robots/converted_rank*/
 *.egg-info
 __pycache__
 
+# CRISP generated terrain/motion data
+src/holosoma_retargeting/holosoma_retargeting/demo_data/crisp_terrain*/
+
 # Gas Town (added by gt)
 .runtime/
 .claude/

@@ -16,6 +16,9 @@ class ViserConfig:
     qpos_npz: str = "rt_results/OMOMO_new/box_parallel/sub8_largebox_051_original.npz"
     """Path to .npz file with qpos data."""
 
+    port: int = 8080
+    """Port for the Viser web server."""
+
     robot_urdf: str = "models/g1/g1_29dof.urdf"
     """Path to robot URDF file."""
 

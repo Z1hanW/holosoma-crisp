@@ -263,11 +263,24 @@ def load_motion_data(
 
     elif task_type == "climbing":
         task_dir = data_path / task_name
-        npy_files = list(task_dir.glob("*.npy"))
-        if not npy_files:
+        canonical_npy = task_dir / f"{task_name}.npy"
+        if canonical_npy.is_file():
+            npy_file = canonical_npy
+        else:
+            npy_files = sorted(
+                path
+                for path in task_dir.glob("*.npy")
+                if path.name != "world_rotation.npy" and path.stem == task_name
+            )
+            if not npy_files:
+                npy_files = sorted(path for path in task_dir.glob("*.npy") if path.name != "world_rotation.npy")
+            if not npy_files:
+                raise FileNotFoundError(f"No motion .npy file found in {task_dir}")
+            npy_file = npy_files[0]
+
+        if not npy_file.exists():
             raise FileNotFoundError(f"No .npy file found in {task_dir}")
 
-        npy_file = npy_files[0]
         # MOCAP-specific downsample factor
         downsample = 4
         human_joints = np.load(str(npy_file))[::downsample]
