@@ -137,11 +137,20 @@ enabled, foot sticking is disabled, and infeasible frames reuse the previous
 qpos. Output `.npz` files record these frames in `failed_frames` and
 `failed_frame_errors`.
 
+CRISP climbing motion is already video-frame aligned with the z-up scene, so the
+climbing loader keeps every frame (`downsample = 1`). Do not reuse the legacy
+Holosoma mocap `::4` downsample for these inputs.
+
 Current local batch status:
 
 - 112 SMPL-X motion inputs were retargeted.
 - 112 `_original.npz` outputs were written.
 - No sequence was missing from the output folder.
+- The loader now uses `downsample = 1` for CRISP climbing. The verified
+  full-frame smoke output is `stair_75`, with `354` input frames and
+  `qpos.shape == (354, 36)`.
+- Re-run the full 112-sequence batch after this change before treating the full
+  folder as a consistent full-frame training set.
 - 69 sequences have no fallback frames.
 - 12 sequences have partial fallback frames:
   `stair_3`, `stair_4`, `stair_11`, `stair_19`, `stair_20`, `stair_38`,

@@ -95,6 +95,10 @@ disable foot sticking, and allow infeasible frames to reuse the previous qpos.
 Fallback frames are recorded in the output `.npz` as `failed_frames` and
 `failed_frame_errors`.
 
+CRISP climbing motion is already video-frame aligned with the z-up scene, so the
+climbing loader keeps every frame (`downsample = 1`). Do not reuse the legacy
+Holosoma mocap `::4` downsample for these inputs.
+
 ## Run All Available Stair Cases
 
 The batch script has been adjusted so climbing tasks find `*/*.npy` regardless
@@ -141,6 +145,11 @@ output for training.
 
 Current fallback summary:
 
+- The loader now uses `downsample = 1` for CRISP climbing. The verified
+  full-frame smoke output is `stair_75`, with `354` input frames and
+  `qpos.shape == (354, 36)`.
+- Re-run the full 112-sequence batch after this change before treating the full
+  folder as a consistent full-frame training set.
 - 69 sequences have no fallback frames.
 - 12 sequences have partial fallback frames:
   `stair_3`, `stair_4`, `stair_11`, `stair_19`, `stair_20`, `stair_38`,

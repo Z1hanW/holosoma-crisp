@@ -281,8 +281,8 @@ def load_motion_data(
         if not npy_file.exists():
             raise FileNotFoundError(f"No .npy file found in {task_dir}")
 
-        # MOCAP-specific downsample factor
-        downsample = 4
+        # CRISP climbing motions are video-frame aligned with the z-up scene.
+        downsample = 1
         human_joints = np.load(str(npy_file))[::downsample]
         num_frames = human_joints.shape[0]
         object_poses = np.tile(np.array([[1, 0, 0, 0, 0, 0, 0]]), (num_frames, 1))
