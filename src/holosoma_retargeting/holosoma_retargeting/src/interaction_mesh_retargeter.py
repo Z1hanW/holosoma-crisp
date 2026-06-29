@@ -61,6 +61,7 @@ class InteractionMeshRetargeter:
         debug: bool = False,
         w_nominal_tracking_init: float = 5.0,
         nominal_tracking_tau: float = 10.0,
+        allow_infeasible_fallback: bool = False,
     ):
         """This kinematic retargeter solves the diffIK problem with hard constraints in SQP style.
         During each SQP iteration, the problem is solved with the following constraints and costs:
@@ -172,6 +173,7 @@ class InteractionMeshRetargeter:
         self.w_nominal_tracking_init = w_nominal_tracking_init
         self.nominal_tracking_tau = nominal_tracking_tau
         self.track_nominal_indices = task_constants.NOMINAL_TRACKING_INDICES
+        self.allow_infeasible_fallback = allow_infeasible_fallback
 
     def _init_foot_lock(self, foot_lock: FootLockConfig | None) -> None:
         """Initialize foot lock configuration and normalize window mappings."""
@@ -403,6 +405,9 @@ class InteractionMeshRetargeter:
         q_locked_list[:, -7:] = object_poses_augmented
         q = np.copy(q_locked_list[0])
         retargeted_motions = [q]
+        failed_frames: list[int] = []
+        failed_frame_errors: list[str] = []
+        cost = np.inf
 
         tetrahedra = []
         obj_pts_demo_list = []  # scaled object pts
@@ -460,20 +465,29 @@ class InteractionMeshRetargeter:
                 else:
                     w_nominal_tracking = self.w_nominal_tracking_init * np.exp(-i / self.nominal_tracking_tau)
 
-                q, cost = self.iterate(
-                    q_locked=q_locked_list[i],
-                    q_n=q,
-                    q_t_last=retargeted_motions[-1],
-                    target_laplacian=target_laplacian,
-                    adj_list=adj_list,
-                    obj_pts_local=object_points_local,
-                    foot_sticking=foot_sticking_sequences[i],
-                    w_nominal_tracking=w_nominal_tracking,
-                    q_a_nominal=(q_nominal_list[i, self.q_a_indices] if q_nominal_list is not None else None),
-                    init_t=i == 0,
-                    n_iter=50 if i == 0 else 10,
-                    frame_idx=i,
-                )
+                try:
+                    q, cost = self.iterate(
+                        q_locked=q_locked_list[i],
+                        q_n=q,
+                        q_t_last=retargeted_motions[-1],
+                        target_laplacian=target_laplacian,
+                        adj_list=adj_list,
+                        obj_pts_local=object_points_local,
+                        foot_sticking=foot_sticking_sequences[i],
+                        w_nominal_tracking=w_nominal_tracking,
+                        q_a_nominal=(q_nominal_list[i, self.q_a_indices] if q_nominal_list is not None else None),
+                        init_t=i == 0,
+                        n_iter=50 if i == 0 else 10,
+                        frame_idx=i,
+                    )
+                except RuntimeError as exc:
+                    if not self.allow_infeasible_fallback:
+                        raise
+                    failed_frames.append(i)
+                    failed_frame_errors.append(str(exc))
+                    q = np.copy(retargeted_motions[-1])
+                    cost = np.inf
+                    print(f"[RetargetFallback] frame {i}: {exc}; reused previous qpos")
                 if self.debug:
                     robot_link_positions = self._get_robot_link_positions(
                         q, self.laplacian_match_links.values()
@@ -513,6 +527,8 @@ class InteractionMeshRetargeter:
             human_joints=human_joint_motions,
             fps=30,
             cost=cost,
+            failed_frames=np.asarray(failed_frames, dtype=np.int32),
+            failed_frame_errors=np.asarray(failed_frame_errors, dtype=object),
         )
         print("Saving results to path:", dest_res_path)
 

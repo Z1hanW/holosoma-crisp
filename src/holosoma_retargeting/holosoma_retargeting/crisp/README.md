@@ -83,6 +83,7 @@ Batch all available CRISP stair outputs:
 source /home/ubuntu/miniconda3/bin/activate gmr
 PYTHONPATH=src/holosoma_retargeting python -m holosoma_retargeting.crisp.convert_zup_scene \
   --crisp-zup-root /tmp/crisp_stairs_same75_post_visualizer_all115_zup/v2 \
+  --crisp-hmr-root /tmp/crisp_stairs_legacy_stair75_112 \
   --output-root src/holosoma_retargeting/holosoma_retargeting/demo_data/crisp_terrain \
   --overwrite \
   --validate
@@ -113,11 +114,28 @@ python examples/robot_retarget.py \
   --data_path demo_data/crisp_terrain \
   --task-type climbing \
   --task-name stair_75 \
-  --data_format mocap \
+  --data_format smplx \
   --robot-config.robot-urdf-file models/g1/g1_29dof_spherehand.urdf \
   --task-config.object-name multi_boxes \
-  --save_dir demo_results/g1/climbing/crisp_terrain
+  --save_dir demo_results/g1/climbing/crisp_terrain \
+  --retargeter.no-activate-foot-sticking \
+  --retargeter.allow-infeasible-fallback
 ```
+
+For the current CRISP stair pass, terrain non-penetration and joint limits stay
+enabled, foot sticking is disabled, and infeasible frames reuse the previous
+qpos. Output `.npz` files record these frames in `failed_frames` and
+`failed_frame_errors`.
+
+Current local batch status:
+
+- 112 SMPL-X motion inputs were retargeted.
+- 112 `_original.npz` outputs were written.
+- No sequence was missing from the output folder.
+- `stair_15` has 43 / 43 fallback frames and should be treated as an infeasible
+  retarget until re-inspected.
+- `stair_75` has fallback frames `[73, 77]`; `stair_80` has fallback frame
+  `[89]`.
 
 For visualization of retargeted results:
 
@@ -127,4 +145,3 @@ python viser_player.py \
   --object_urdf demo_data/crisp_terrain/stair_75/multi_boxes.urdf \
   --qpos_npz demo_results/g1/climbing/crisp_terrain/stair_75_original.npz
 ```
-

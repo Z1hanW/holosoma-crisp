@@ -36,6 +36,7 @@ class ConvertedSequence:
     motion_file: Path | None
     bounds_min: list[float]
     bounds_max: list[float]
+    motion_metadata: dict | None = None
 
 
 def _relpath(path: Path, start: Path) -> str:
@@ -301,6 +302,75 @@ def _copy_motion(sequence: str, output_dir: Path, motion_root: Path | None, moti
     return None
 
 
+def _find_crisp_smplx_motion(sequence: str, crisp_hmr_root: Path, hmr_key: str, motion_filename: str) -> Path | None:
+    candidates = [
+        crisp_hmr_root / sequence / hmr_key / "hmr" / motion_filename,
+        crisp_hmr_root / sequence / "hmr" / motion_filename,
+        crisp_hmr_root / sequence / motion_filename,
+    ]
+    if sequence.startswith("stair_"):
+        numeric = sequence.removeprefix("stair_")
+        candidates.extend(
+            [
+                crisp_hmr_root / numeric / hmr_key / "hmr" / motion_filename,
+                crisp_hmr_root / numeric / "hmr" / motion_filename,
+                crisp_hmr_root / numeric / motion_filename,
+            ]
+        )
+    for candidate in candidates:
+        if candidate.is_file():
+            return candidate
+    return None
+
+
+def _write_crisp_smplx_motion(
+    sequence: str,
+    output_dir: Path,
+    crisp_hmr_root: Path | None,
+    hmr_key: str,
+    source_filename: str,
+    output_filename: str,
+) -> tuple[Path | None, dict | None]:
+    if crisp_hmr_root is None:
+        return None, None
+
+    source_path = _find_crisp_smplx_motion(sequence, crisp_hmr_root, hmr_key, source_filename)
+    if source_path is None:
+        return None, None
+
+    source_data = np.load(source_path)
+    if "global_joint_positions" not in source_data:
+        raise KeyError(f"{source_path} does not contain global_joint_positions")
+
+    joints = np.asarray(source_data["global_joint_positions"], dtype=np.float32)
+    if joints.ndim != 3 or joints.shape[-1] != 3:
+        raise ValueError(f"Expected global_joint_positions shape (T, J, 3), got {joints.shape} in {source_path}")
+
+    output_name = output_filename.format(sequence=sequence)
+    if not output_name.endswith(".npy"):
+        output_name += ".npy"
+    output_path = output_dir / output_name
+    np.save(output_path, joints)
+
+    z_extent_per_frame = joints[:, :, 2].max(axis=1) - joints[:, :, 2].min(axis=1)
+    metadata = {
+        "source": str(source_path),
+        "output": output_path.name,
+        "format": "smplx",
+        "shape": list(joints.shape),
+        "coordinate_policy": "faithful_copy_no_rotation_no_translation_no_scale",
+        "source_height_key": float(source_data["height"]) if "height" in source_data else None,
+        "median_frame_z_extent": float(np.median(z_extent_per_frame)),
+        "mean_frame_z_extent": float(np.mean(z_extent_per_frame)),
+        "note": (
+            "source_height_key is the source file value and may describe trajectory z range, not body height; "
+            "this converter does not use it to scale the motion."
+        ),
+    }
+    (output_dir / "crisp_motion_metadata.json").write_text(json.dumps(metadata, indent=2) + "\n")
+    return output_path, metadata
+
+
 def convert_sequence(
     sequence: str,
     scene_dir: Path,
@@ -311,6 +381,10 @@ def convert_sequence(
     overwrite: bool,
     motion_root: Path | None,
     motion_glob: str,
+    crisp_hmr_root: Path | None,
+    hmr_key: str,
+    crisp_hmr_motion_filename: str,
+    motion_output_filename: str,
     require_motion: bool,
 ) -> ConvertedSequence:
     output_dir = output_root / sequence
@@ -342,8 +416,21 @@ def convert_sequence(
 
     scene_xml = _write_scene_xml(robot_xml, robot_urdf, object_name, output_dir)
     motion_file = _copy_motion(sequence, output_dir, motion_root, motion_glob)
+    motion_metadata = None
+    if motion_file is None:
+        motion_file, motion_metadata = _write_crisp_smplx_motion(
+            sequence=sequence,
+            output_dir=output_dir,
+            crisp_hmr_root=crisp_hmr_root,
+            hmr_key=hmr_key,
+            source_filename=crisp_hmr_motion_filename,
+            output_filename=motion_output_filename,
+        )
     if require_motion and motion_file is None:
-        raise FileNotFoundError(f"No motion .npy found for {sequence} under {motion_root}")
+        raise FileNotFoundError(
+            f"No motion found for {sequence}. Checked --motion-root={motion_root} "
+            f"and --crisp-hmr-root={crisp_hmr_root}"
+        )
 
     converted = ConvertedSequence(
         sequence=sequence,
@@ -356,6 +443,7 @@ def convert_sequence(
         motion_file=motion_file,
         bounds_min=bounds_min,
         bounds_max=bounds_max,
+        motion_metadata=motion_metadata,
     )
 
     manifest = {
@@ -375,6 +463,7 @@ def convert_sequence(
             "box_body_xml": "box_body.xml",
             "pieces_dir": "pieces",
             "motion_file": converted.motion_file.name if converted.motion_file else None,
+            "motion_metadata": "crisp_motion_metadata.json" if converted.motion_metadata else None,
         },
         "retargeting_note": (
             "Holosoma climbing loads the first .npy motion file in this folder and may generate scaled "
@@ -434,6 +523,22 @@ def parse_args() -> argparse.Namespace:
         help="Optional root containing Holosoma motion .npy files.",
     )
     parser.add_argument("--motion-glob", default="{sequence}*.npy", help="Glob used under --motion-root.")
+    parser.add_argument(
+        "--crisp-hmr-root",
+        type=Path,
+        default=None,
+        help="Optional CRISP root containing <sequence>/<hmr-key>/hmr/hps_track_smplx.npz.",
+    )
+    parser.add_argument(
+        "--crisp-hmr-motion-filename",
+        default="hps_track_smplx.npz",
+        help="CRISP SMPL-X motion file name under each hmr folder.",
+    )
+    parser.add_argument(
+        "--motion-output-filename",
+        default="{sequence}.npy",
+        help="Output .npy name written into each Holosoma sequence folder.",
+    )
     parser.add_argument("--require-motion", action="store_true", help="Fail if no matching motion .npy is found.")
     parser.add_argument("--max-sequences", type=int, default=None, help="Limit discovered sequences for testing.")
     parser.add_argument("--overwrite", action="store_true", help="Regenerate existing sequence outputs.")
@@ -449,6 +554,7 @@ def main() -> None:
     robot_xml = args.robot_xml.expanduser().resolve()
     robot_urdf = args.robot_urdf.expanduser().resolve()
     motion_root = args.motion_root.expanduser().resolve() if args.motion_root else None
+    crisp_hmr_root = args.crisp_hmr_root.expanduser().resolve() if args.crisp_hmr_root else None
 
     if args.sequence:
         scene_dirs = [(seq, _find_scene_dir(root, seq, args.hmr_key)) for seq in args.sequence]
@@ -471,6 +577,10 @@ def main() -> None:
             overwrite=args.overwrite,
             motion_root=motion_root,
             motion_glob=args.motion_glob,
+            crisp_hmr_root=crisp_hmr_root,
+            hmr_key=args.hmr_key,
+            crisp_hmr_motion_filename=args.crisp_hmr_motion_filename,
+            motion_output_filename=args.motion_output_filename,
             require_motion=args.require_motion,
         )
         if args.validate or args.validate_mujoco:

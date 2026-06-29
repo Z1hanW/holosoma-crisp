@@ -326,7 +326,9 @@ def main(cfg: ParallelRetargetingConfig) -> None:
     if cfg.motion_data_config.robot_type != robot or cfg.motion_data_config.data_format != data_format:
         cfg.motion_data_config = MotionDataConfig(data_format=data_format, robot_type=robot)
 
-    if task_type == "robot_only":
+    if task_type == "climbing":
+        files = sorted(str(p) for p in Path(data_dir).glob("*/*.npy"))
+    elif task_type == "robot_only":
         files = find_files(data_dir, data_format)
     else:
         files = find_files(data_dir, data_format, cfg.task_config.object_name)

@@ -90,3 +90,6 @@ class RetargeterConfig:
 
     nominal_tracking_tau: float = 1e6
     """Time constant for the nominal tracking cost."""
+
+    allow_infeasible_fallback: bool = False
+    """Whether to keep the previous qpos when a frame solve is infeasible."""
