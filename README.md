@@ -136,6 +136,31 @@ The script defaults to 8 GPUs with 4096 envs per GPU and checkpoint save interva
 
 For multi-terrain debugging, the script defaults `USE_ADAPTIVE_TIMESTEPS_SAMPLER=False` and adds `noadaptive` to the run name. The original global adaptive timestep sampler bins failures over the concatenated fused motion frame axis. On the 16-motion stair batch this can collapse almost all resets onto one hard global bin, for example W&B run `h5xzojtc` showed sampler entropy near `0.02`, top1 probability around `0.989`, top1 bin around `0.897`, and episode length around `30`. That bin falls inside the later stair clip range, so the policy stops seeing a balanced distribution of terrains. Keep it off until we replace it with a per-motion or motion-balanced adaptive sampler.
 
+### CSP Depth Student Distillation
+
+`csp_depth_distill.sh` distills a trained terrain-aware FastSAC tracking teacher into a depth-based student. This is a true physics rollout, not kinematics replay: IsaacSim/PhysX steps the robot and static OBJ terrain, the frozen teacher produces rollout actions from its original tracking observations, and the student learns an MSE action loss from proprioception plus a ray-cast depth image.
+
+The depth camera follows the far-tracking ZED2i-style setup: raw `106x60`, horizontal FOV `101.41` degrees, range `[0.3, 2.0]`, mounted on `torso_link` with offset `[0.125, 0.06, 0.04]` and RPY `[0, 71, 0]` degrees. IsaacLab's pinhole ray pattern already converts optical camera rays into the robotics camera frame, so we do not apply far-tracking's `offset_rot_base=[-90, 0, -90]` a second time. Distillation resizes the normalized depth to `58x87` before the student CNN.
+
+Run distillation from an explicit teacher checkpoint:
+
+```bash
+cd /home/ubuntu/FAR/holosoma
+TEACHER_CHECKPOINT=logs/holosomatest/.../model_01000.pt ./csp_depth_distill.sh
+```
+
+The script defaults to 8 GPUs and 1024 envs per GPU. Depth camera ray-casting is much heavier than the height scan, so this is intentionally lower than the 4096 env/GPU tracking default; override with `ENVS_PER_GPU=4096` only after confirming memory headroom. Outputs are saved under `logs/holosomatest/` as `student_*.pt` and `student_*.onnx`, and metrics go to W&B project `zihanw22/holosomatest`.
+
+To start distillation from the latest checkpoint of the current multi-terrain tracking run after a delay:
+
+```bash
+DELAY_SECONDS=25200 \
+TRACKING_SESSION=csp_multiterrain_heightmapwbt_20260630_053640 \
+scripts/schedule_depth_distill_from_latest.sh
+```
+
+The scheduler reads `logs/run_commands/<tracking-session>.run_name`, finds the highest `model_*.pt` under `logs/holosomatest/`, stops the tracking tmux session, and launches `csp_depth_distill.sh`.
+
 Useful overrides:
 
 ```bash

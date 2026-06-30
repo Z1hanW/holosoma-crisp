@@ -3,6 +3,7 @@ from __future__ import annotations
 import builtins
 import copy
 import dataclasses
+import math
 import os
 import xml.etree.ElementTree as ET
 from typing import Any
@@ -23,6 +24,7 @@ from isaaclab.managers import EventManager, SceneEntityCfg
 from isaaclab.managers import EventTermCfg as EventTerm
 from isaaclab.scene import InteractiveScene, InteractiveSceneCfg
 from isaaclab.sensors import ContactSensor, ContactSensorCfg, RayCaster, RayCasterCfg, patterns
+from isaaclab.sensors.ray_caster import RayCasterCamera, RayCasterCameraCfg
 from isaaclab.sim import PhysxCfg, SimulationCfg, SimulationContext
 from isaaclab.terrains import TerrainGeneratorCfg, TerrainImporterCfg
 from isaaclab.terrains.utils import create_prim_from_mesh
@@ -319,7 +321,9 @@ class IsaacSim(BaseSimulator):
 
         terrain_prim_path = "/World/ground"
         height_scanner_config = None
+        depth_camera_config = None
         height_scanner_cfg = getattr(self.simulator_config, "height_scanner", None)
+        depth_camera_cfg = getattr(self.simulator_config, "depth_camera", None)
         terrain_state = self.terrain_manager.get_state("locomotion_terrain")
         if height_scanner_cfg is not None and height_scanner_cfg.enabled and terrain_state.mesh_type not in ["fake", None]:
             height_scanner_body_name = self._get_height_scanner_body_name()
@@ -333,6 +337,32 @@ class IsaacSim(BaseSimulator):
                     size=tuple(height_scanner_cfg.size),
                 ),
                 debug_vis=height_scanner_cfg.debug_vis,
+                mesh_prim_paths=[terrain_prim_path],
+            )
+
+        if depth_camera_cfg is not None and depth_camera_cfg.enabled and terrain_state.mesh_type not in ["fake", None]:
+            depth_camera_body_name = self._get_depth_camera_body_name()
+            width = int(depth_camera_cfg.width)
+            height = int(depth_camera_cfg.height)
+            focal_px = (width / 2.0) / math.tan(math.radians(depth_camera_cfg.horizontal_fov_deg) / 2.0)
+            intrinsic = [focal_px, 0.0, width / 2.0, 0.0, focal_px, height / 2.0, 0.0, 0.0, 1.0]
+            depth_camera_config = RayCasterCameraCfg(
+                prim_path=f"/World/envs/env_.*/Robot/{depth_camera_body_name}",
+                update_period=depth_camera_cfg.update_period,
+                offset=RayCasterCameraCfg.OffsetCfg(
+                    pos=tuple(depth_camera_cfg.offset),
+                    rot=self._quat_wxyz_from_rpy_deg(depth_camera_cfg.offset_rpy_deg),
+                    convention="world",
+                ),
+                pattern_cfg=patterns.PinholeCameraPatternCfg.from_intrinsic_matrix(
+                    intrinsic_matrix=intrinsic,
+                    width=width,
+                    height=height,
+                ),
+                data_types=["distance_to_image_plane"],
+                depth_clipping_behavior="max",
+                max_distance=float(depth_camera_cfg.max_range),
+                debug_vis=depth_camera_cfg.debug_vis,
                 mesh_prim_paths=[terrain_prim_path],
             )
 
@@ -389,6 +419,10 @@ class IsaacSim(BaseSimulator):
         if height_scanner_config:
             self._height_scanner = RayCaster(height_scanner_config)
             self.scene.sensors[height_scanner_cfg.sensor_name] = self._height_scanner
+
+        if depth_camera_config:
+            self._depth_camera = RayCasterCamera(depth_camera_config)
+            self.scene.sensors[depth_camera_cfg.sensor_name] = self._depth_camera
 
         # clone, filter, and replicate
         self.scene.clone_environments(copy_from_source=False)
@@ -481,6 +515,37 @@ class IsaacSim(BaseSimulator):
         if not self.robot_config.body_names:
             raise ValueError("Cannot attach height scanner because robot_config.body_names is empty.")
         return self.robot_config.body_names[0]
+
+    def _get_depth_camera_body_name(self) -> str:
+        """Resolve the robot body used by the ray-cast depth camera."""
+        cfg = self.simulator_config.depth_camera
+        if cfg.body_name is not None:
+            return cfg.body_name
+
+        for body_name in cfg.fallback_body_names:
+            if body_name in self.robot_config.body_names:
+                return body_name
+
+        if not self.robot_config.body_names:
+            raise ValueError("Cannot attach depth camera because robot_config.body_names is empty.")
+        return self.robot_config.body_names[0]
+
+    @staticmethod
+    def _quat_wxyz_from_rpy_deg(rpy_deg: list[float]) -> tuple[float, float, float, float]:
+        """Convert roll/pitch/yaw degrees to a wxyz quaternion."""
+        roll, pitch, yaw = (math.radians(float(v)) for v in rpy_deg)
+        cy = math.cos(yaw * 0.5)
+        sy = math.sin(yaw * 0.5)
+        cr = math.cos(roll * 0.5)
+        sr = math.sin(roll * 0.5)
+        cp = math.cos(pitch * 0.5)
+        sp = math.sin(pitch * 0.5)
+        return (
+            cy * cr * cp + sy * sr * sp,
+            cy * sr * cp - sy * cr * sp,
+            cy * cr * sp + sy * sr * cp,
+            sy * cr * cp - cy * sr * sp,
+        )
 
     def get_supported_scene_formats(self) -> list[str]:
         """See base class.

@@ -477,6 +477,57 @@ class HeightScannerCfg:
 
 
 @dataclass(frozen=True)
+class DepthCameraCfg:
+    """IsaacLab ray-caster pinhole depth camera configuration."""
+
+    enabled: bool = False
+    """Whether to add a ray-cast depth camera sensor."""
+
+    sensor_name: str = "depth_camera"
+    """Name used when registering the sensor in the IsaacLab scene."""
+
+    body_name: str | None = "torso_link"
+    """Robot body to attach the camera to. If None, fallback_body_names is used."""
+
+    fallback_body_names: list[str] = field(
+        default_factory=lambda: ["torso_link", "torso", "pelvis", "base_link", "base"]
+    )
+    """Fallback body names used when body_name is None."""
+
+    update_period: float = 0.02
+    """Sensor update period in seconds."""
+
+    offset: list[float] = field(default_factory=lambda: [0.125, 0.06, 0.04])
+    """Camera position offset from the attached body frame."""
+
+    offset_rpy_deg: list[float] = field(default_factory=lambda: [0.0, 71.0, 0.0])
+    """Camera roll, pitch, yaw offset in degrees using IsaacLab's robotics camera frame.
+
+    This is the far-tracking G1 mount rotation only. IsaacLab's pinhole pattern already
+    converts optical camera rays into the robotics camera frame, so far-tracking's
+    ``offset_rot_base=[-90, 0, -90]`` should not be applied again here.
+    """
+
+    width: int = 106
+    """Raw ray-caster camera width in pixels."""
+
+    height: int = 60
+    """Raw ray-caster camera height in pixels."""
+
+    horizontal_fov_deg: float = 101.41
+    """Horizontal field of view in degrees. Default matches far-tracking's ZED2i config."""
+
+    min_range: float = 0.3
+    """Minimum depth range used by observation normalization."""
+
+    max_range: float = 2.0
+    """Maximum depth range and ray-cast clipping distance."""
+
+    debug_vis: bool = False
+    """Whether to visualize ray hits."""
+
+
+@dataclass(frozen=True)
 class BridgeConfig:
     """Configuration for robot SDK bridge integration.
 
@@ -596,6 +647,9 @@ class SimulatorInitConfig:
 
     height_scanner: HeightScannerCfg = field(default_factory=HeightScannerCfg)
     """Ray-cast height scanner configuration."""
+
+    depth_camera: DepthCameraCfg = field(default_factory=DepthCameraCfg)
+    """Ray-cast pinhole depth camera configuration for visual distillation."""
 
 
 @dataclass(frozen=True)

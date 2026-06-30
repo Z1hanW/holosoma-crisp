@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import torch
+import torch.nn.functional as F
 
 from holosoma.managers.command.terms.wbt import MotionCommand
 from holosoma.utils.rotations import quat_rotate_inverse, quaternion_to_matrix, subtract_frame_transforms
@@ -146,6 +147,49 @@ def height_scan(
     heights = sensor.data.pos_w[:, 2].unsqueeze(1) - sensor.data.ray_hits_w[..., 2] - offset
     heights = torch.nan_to_num(heights, nan=miss_value, posinf=miss_value, neginf=miss_value)
     return heights.clamp(min=clip_min, max=clip_max)
+
+
+def depth_camera(
+    env: WholeBodyTrackingManager,
+    sensor_name: str = "depth_camera",
+    output_key: str = "distance_to_image_plane",
+    min_range: float = 0.3,
+    max_range: float = 2.0,
+    resize_height: int = 58,
+    resize_width: int = 87,
+    flatten: bool = True,
+) -> torch.Tensor:
+    """Normalized ray-caster pinhole depth image for visual distillation.
+
+    The source sensor is IsaacLab's RayCasterCamera, which ray-casts against the
+    static terrain mesh and exposes a depth image in ``sensor.data.output``. This
+    follows the far-tracking depth preprocessing convention: clamp to the sensor
+    range, resize, then normalize into roughly [-0.5, 0.5].
+    """
+    sensors = getattr(getattr(env.simulator, "scene", None), "sensors", {})
+    if sensor_name not in sensors:
+        raise RuntimeError(
+            f"Depth camera sensor '{sensor_name}' is not available. "
+            "Enable it with --simulator.config.depth-camera.enabled=True."
+        )
+
+    sensor = sensors[sensor_name]
+    output = sensor.data.output
+    if output_key not in output:
+        raise RuntimeError(f"Depth camera output '{output_key}' is not available. Available outputs: {list(output)}")
+
+    depth = output[output_key]
+    if depth.ndim == 4 and depth.shape[-1] == 1:
+        depth = depth[..., 0]
+    if depth.ndim != 3:
+        raise RuntimeError(f"Expected depth image shape [num_envs, height, width], got {tuple(depth.shape)}")
+
+    depth = torch.nan_to_num(depth, nan=max_range, posinf=max_range, neginf=max_range)
+    depth = depth.clamp(min=min_range, max=max_range).unsqueeze(1)
+    if resize_height > 0 and resize_width > 0 and tuple(depth.shape[-2:]) != (resize_height, resize_width):
+        depth = F.interpolate(depth, size=(resize_height, resize_width), mode="bilinear", align_corners=False)
+    depth = (depth - min_range) / max(max_range - min_range, 1.0e-6) - 0.5
+    return depth.flatten(start_dim=1) if flatten else depth
 
 
 #########################################################################################################

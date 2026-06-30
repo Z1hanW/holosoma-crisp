@@ -100,9 +100,11 @@ def setup_isaaclab_launcher(config: ExperimentConfig | RunSimConfig, device: str
     else:  # AppLauncher auto-detects
         pass
 
-    # Check if video recording is enabled and add --enable_cameras flag
+    # Check if video recording or ray-cast depth cameras are enabled and add --enable_cameras flag.
     video_enabled = config.logger.video.enabled or config.logger.headless_recording
-    if video_enabled:
+    depth_camera_cfg = getattr(config.simulator.config, "depth_camera", None)
+    depth_camera_enabled = bool(getattr(depth_camera_cfg, "enabled", False))
+    if video_enabled or depth_camera_enabled:
         args_cli.enable_cameras = True
 
     app_launcher = AppLauncher(args_cli)

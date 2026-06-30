@@ -1,0 +1,142 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Distill the latest terrain-aware tracking teacher into a depth-based student.
+# The rollout is a true IsaacSim/PhysX rollout: teacher actions step the env,
+# while the student learns to match those actions from proprioception + depth.
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+cd "${SCRIPT_DIR}"
+
+find_free_port() {
+  python - "$@" <<'PY'
+import socket
+import sys
+
+start = int(sys.argv[1]) if len(sys.argv) > 1 else 29605
+for port in range(start, start + 200):
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        try:
+            sock.bind(("", port))
+        except OSError:
+            continue
+        print(port)
+        raise SystemExit(0)
+raise SystemExit("No free port found")
+PY
+}
+
+quote() {
+  printf "%q" "$1"
+}
+
+HOSTNAME_SHORT="${HOSTNAME_SHORT:-$(hostname)}"
+TIMESTAMP="${TIMESTAMP:-$(date -u +%Y%m%d_%H%M%S)}"
+
+WANDB_ENTITY="${WANDB_ENTITY:-zihanw22}"
+WANDB_PROJECT="${WANDB_PROJECT:-holosomatest}"
+NUM_GPUS="${NUM_GPUS:-8}"
+ENVS_PER_GPU="${ENVS_PER_GPU:-1024}"
+TOTAL_ENVS="${TOTAL_ENVS:-$((NUM_GPUS * ENVS_PER_GPU))}"
+NUM_ITERATIONS="${NUM_ITERATIONS:-20000}"
+SAVE_INTERVAL="${SAVE_INTERVAL:-500}"
+LOGGING_INTERVAL="${LOGGING_INTERVAL:-25}"
+LEARNING_RATE="${LEARNING_RATE:-3e-4}"
+WEIGHT_DECAY="${WEIGHT_DECAY:-1e-4}"
+MAX_GRAD_NORM="${MAX_GRAD_NORM:-1.0}"
+STUDENT_ROLLOUT_PROB="${STUDENT_ROLLOUT_PROB:-0.0}"
+DEPTH_HEIGHT="${DEPTH_HEIGHT:-58}"
+DEPTH_WIDTH="${DEPTH_WIDTH:-87}"
+RAW_DEPTH_HEIGHT="${RAW_DEPTH_HEIGHT:-60}"
+RAW_DEPTH_WIDTH="${RAW_DEPTH_WIDTH:-106}"
+DEPTH_MIN_RANGE="${DEPTH_MIN_RANGE:-0.3}"
+DEPTH_MAX_RANGE="${DEPTH_MAX_RANGE:-2.0}"
+DEPTH_HORIZONTAL_FOV_DEG="${DEPTH_HORIZONTAL_FOV_DEG:-101.41}"
+DEPTH_CAMERA_BODY_NAME="${DEPTH_CAMERA_BODY_NAME:-torso_link}"
+DEPTH_CAMERA_DEBUG_VIS="${DEPTH_CAMERA_DEBUG_VIS:-0}"
+
+TEACHER_CHECKPOINT="${TEACHER_CHECKPOINT:-${1:-}}"
+RUN_NAME="${RUN_NAME:-${HOSTNAME_SHORT}_g1_29dof_depth_student_distill_motionstairs16_${NUM_GPUS}gpu_${ENVS_PER_GPU}env_${TIMESTAMP}}"
+SESSION="${SESSION:-csp_depth_distill_${TIMESTAMP}}"
+LOG_DIR="${LOG_DIR:-logs/run_commands}"
+LOG_FILE="${LOG_FILE:-${LOG_DIR}/${SESSION}.log}"
+MASTER_PORT="${MASTER_PORT:-$(find_free_port 29605)}"
+
+if [[ -z "${TEACHER_CHECKPOINT}" ]]; then
+  echo "TEACHER_CHECKPOINT is required, or pass it as the first argument." >&2
+  exit 1
+fi
+
+if [[ "${1:-}" != "--run" && "${RUN_IN_TMUX:-1}" == "1" ]]; then
+  mkdir -p "${LOG_DIR}"
+  printf "%s\n" "${RUN_NAME}" > "${LOG_DIR}/${SESSION}.run_name"
+
+  TMUX_ENV="RUN_IN_TMUX=0 TIMESTAMP=$(quote "${TIMESTAMP}") HOSTNAME_SHORT=$(quote "${HOSTNAME_SHORT}") WANDB_ENTITY=$(quote "${WANDB_ENTITY}") WANDB_PROJECT=$(quote "${WANDB_PROJECT}") NUM_GPUS=$(quote "${NUM_GPUS}") ENVS_PER_GPU=$(quote "${ENVS_PER_GPU}") TOTAL_ENVS=$(quote "${TOTAL_ENVS}") NUM_ITERATIONS=$(quote "${NUM_ITERATIONS}") SAVE_INTERVAL=$(quote "${SAVE_INTERVAL}") LOGGING_INTERVAL=$(quote "${LOGGING_INTERVAL}") LEARNING_RATE=$(quote "${LEARNING_RATE}") WEIGHT_DECAY=$(quote "${WEIGHT_DECAY}") MAX_GRAD_NORM=$(quote "${MAX_GRAD_NORM}") STUDENT_ROLLOUT_PROB=$(quote "${STUDENT_ROLLOUT_PROB}") DEPTH_HEIGHT=$(quote "${DEPTH_HEIGHT}") DEPTH_WIDTH=$(quote "${DEPTH_WIDTH}") RAW_DEPTH_HEIGHT=$(quote "${RAW_DEPTH_HEIGHT}") RAW_DEPTH_WIDTH=$(quote "${RAW_DEPTH_WIDTH}") DEPTH_MIN_RANGE=$(quote "${DEPTH_MIN_RANGE}") DEPTH_MAX_RANGE=$(quote "${DEPTH_MAX_RANGE}") DEPTH_HORIZONTAL_FOV_DEG=$(quote "${DEPTH_HORIZONTAL_FOV_DEG}") DEPTH_CAMERA_BODY_NAME=$(quote "${DEPTH_CAMERA_BODY_NAME}") DEPTH_CAMERA_DEBUG_VIS=$(quote "${DEPTH_CAMERA_DEBUG_VIS}") TEACHER_CHECKPOINT=$(quote "${TEACHER_CHECKPOINT}") RUN_NAME=$(quote "${RUN_NAME}") SESSION=$(quote "${SESSION}") LOG_DIR=$(quote "${LOG_DIR}") LOG_FILE=$(quote "${LOG_FILE}") MASTER_PORT=$(quote "${MASTER_PORT}")"
+  if [[ -n "${CUDA_VISIBLE_DEVICES:-}" ]]; then
+    TMUX_ENV="CUDA_VISIBLE_DEVICES=$(quote "${CUDA_VISIBLE_DEVICES}") ${TMUX_ENV}"
+  fi
+  TMUX_CMD="cd $(quote "${SCRIPT_DIR}") && env ${TMUX_ENV} bash $(quote "${SCRIPT_DIR}/csp_depth_distill.sh") --run > $(quote "${LOG_FILE}") 2>&1"
+
+  tmux new-session -d -s "${SESSION}" "${TMUX_CMD}"
+  echo "Started CSP depth student distillation."
+  echo "  session: ${SESSION}"
+  echo "  run_name: ${RUN_NAME}"
+  echo "  log: ${LOG_FILE}"
+  echo "  master_port: ${MASTER_PORT}"
+  echo "  total_envs: ${TOTAL_ENVS} (${NUM_GPUS} x ${ENVS_PER_GPU})"
+  echo "  teacher_checkpoint: ${TEACHER_CHECKPOINT}"
+  echo "  depth: ${DEPTH_HEIGHT}x${DEPTH_WIDTH} from raw ${RAW_DEPTH_HEIGHT}x${RAW_DEPTH_WIDTH}"
+  echo "  physics_rollout: true"
+  exit 0
+fi
+
+if [[ "${1:-}" == "--run" ]]; then
+  shift
+fi
+if [[ -n "${1:-}" && "${1}" == "${TEACHER_CHECKPOINT}" ]]; then
+  shift
+fi
+
+source ~/miniconda3/etc/profile.d/conda.sh 2>/dev/null \
+  || source /opt/conda/etc/profile.d/conda.sh 2>/dev/null \
+  || source /home/ubuntu/.holosoma_deps/miniconda3/etc/profile.d/conda.sh
+
+conda activate "${CONDA_ENV_NAME:-hssim}"
+source scripts/source_isaacsim_setup.sh
+
+export LOGURU_LEVEL="${LOGURU_LEVEL:-INFO}"
+
+DEPTH_CAMERA_FLAGS=()
+if [[ "${DEPTH_CAMERA_DEBUG_VIS,,}" == "true" || "${DEPTH_CAMERA_DEBUG_VIS}" == "1" ]]; then
+  DEPTH_CAMERA_FLAGS+=(--depth-camera-debug-vis)
+fi
+
+torchrun \
+  --master_port="${MASTER_PORT}" \
+  --nproc_per_node="${NUM_GPUS}" \
+  src/holosoma/holosoma/distill_depth_student.py \
+  --teacher-checkpoint "${TEACHER_CHECKPOINT}" \
+  --num-envs "${TOTAL_ENVS}" \
+  --iterations "${NUM_ITERATIONS}" \
+  --save-interval "${SAVE_INTERVAL}" \
+  --logging-interval "${LOGGING_INTERVAL}" \
+  --learning-rate "${LEARNING_RATE}" \
+  --weight-decay "${WEIGHT_DECAY}" \
+  --max-grad-norm "${MAX_GRAD_NORM}" \
+  --student-rollout-prob "${STUDENT_ROLLOUT_PROB}" \
+  --depth-height "${DEPTH_HEIGHT}" \
+  --depth-width "${DEPTH_WIDTH}" \
+  --raw-depth-height "${RAW_DEPTH_HEIGHT}" \
+  --raw-depth-width "${RAW_DEPTH_WIDTH}" \
+  --depth-min-range "${DEPTH_MIN_RANGE}" \
+  --depth-max-range "${DEPTH_MAX_RANGE}" \
+  --depth-horizontal-fov-deg "${DEPTH_HORIZONTAL_FOV_DEG}" \
+  --depth-camera-body-name "${DEPTH_CAMERA_BODY_NAME}" \
+  --run-name "${RUN_NAME}" \
+  --project "${WANDB_PROJECT}" \
+  --wandb \
+  --wandb-entity "${WANDB_ENTITY}" \
+  --wandb-project "${WANDB_PROJECT}" \
+  "${DEPTH_CAMERA_FLAGS[@]}" \
+  "$@"

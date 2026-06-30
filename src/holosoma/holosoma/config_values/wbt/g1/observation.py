@@ -46,6 +46,12 @@ height_scan_obs_term = ObsTermCfg(
     noise=0.0,
 )
 
+depth_camera_obs_term = ObsTermCfg(
+    func="holosoma.managers.observation.terms.wbt:depth_camera",
+    scale=1.0,
+    noise=0.0,
+)
+
 actor_obs_with_height_scan = ObsGroupCfg(
     concatenate=True,
     enable_noise=True,
@@ -53,6 +59,16 @@ actor_obs_with_height_scan = ObsGroupCfg(
     terms={
         **actor_obs_shared.terms,
         "height_scan": height_scan_obs_term,
+    },
+)
+
+actor_obs_with_depth_camera = ObsGroupCfg(
+    concatenate=True,
+    enable_noise=True,
+    history_length=1,
+    terms={
+        **actor_obs_shared.terms,
+        "depth_camera": depth_camera_obs_term,
     },
 )
 
@@ -114,6 +130,11 @@ critic_obs_shared_height_scan_terms = {
     "height_scan": height_scan_obs_term,
 }
 
+critic_obs_shared_depth_camera_terms = {
+    **critic_obs_shared_terms,
+    "depth_camera": depth_camera_obs_term,
+}
+
 critic_obs_w_object_terms = critic_obs_shared_terms.copy()
 critic_obs_w_object_terms.update(
     {
@@ -164,6 +185,18 @@ g1_29dof_wbt_observation_with_height_scan = ObservationManagerCfg(
     },
 )
 
+g1_29dof_wbt_observation_with_depth_camera = ObservationManagerCfg(
+    groups={
+        "actor_obs": actor_obs_with_depth_camera,
+        "critic_obs": ObsGroupCfg(
+            concatenate=True,
+            enable_noise=False,
+            history_length=1,
+            terms=critic_obs_shared_depth_camera_terms,
+        ),
+    },
+)
+
 g1_29dof_wbt_observation_w_object = ObservationManagerCfg(
     groups={
         "actor_obs": actor_obs_shared,
@@ -191,6 +224,7 @@ g1_29dof_wbt_observation_w_object_with_height_scan = ObservationManagerCfg(
 __all__ = [
     "g1_29dof_wbt_observation",
     "g1_29dof_wbt_observation_with_height_scan",
+    "g1_29dof_wbt_observation_with_depth_camera",
     "g1_29dof_wbt_observation_w_object",
     "g1_29dof_wbt_observation_w_object_with_height_scan",
 ]
