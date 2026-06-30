@@ -107,7 +107,51 @@ The heightmap script also enables a flat floor patch under the loaded OBJ terrai
 
 Multi-GPU height-scan training relies on empirical observation normalization. The distributed variance path clamps variance to be non-negative before `sqrt()` because height scans contain many near-constant values and `E[x^2] - E[x]^2` can produce tiny negative values in float32; without that clamp the actor distribution can receive NaNs before the first rollout.
 
+### CSP Multi-Terrain Heightmap WBT
+
+`csp_multiterrain_heightmapwbt.sh` trains the heightmap-aware WBT policy on the CRISP motion-stairs batch as a true physics rollout. It is not a kinematics replay: the policy is trained in IsaacSim/PhysX against the loaded OBJ terrain, with the height scanner enabled.
+
+The multi-terrain fuse follows the far-tracking convention: many motion/terrain pairs are represented as one combined terrain mesh. The important Holosoma-specific detail is that the fused motion NPZ carries a `terrain_origins` array. On every WBT reset, after `motion_id` is sampled, `MotionCommand` writes the corresponding `terrain_origins[motion_id]` into `scene.env_origins`, `simulator.env_origins`, and the locomotion terrain state. This keeps each sampled motion aligned with its matching translated terrain tile while preserving the existing motion position code that adds `env_origins` at read time.
+
+Generate or refresh the fused CRISP stair assets:
+
+```bash
+python scripts/fuse_crisp_stairs_multiterrain.py
+```
+
+Default outputs:
+
+- `crisp_stairs/_fused/motion_stairs_16_multiterrain.npz`
+- `crisp_stairs/_fused/motion_stairs_16_multiterrain.obj`
+- `crisp_stairs/_fused/motion_stairs_16_multiterrain.json`
+
+Run the multi-terrain heightmap training entrypoint:
+
+```bash
+cd /home/ubuntu/FAR/holosoma
+./csp_multiterrain_heightmapwbt.sh
+```
+
+The script defaults to 4 GPUs with 4096 envs per GPU and checkpoint save interval `1000`. It automatically builds the fused assets when missing, uses `exp:g1-29dof-wbt-height-scan`, and loads the fused OBJ with `num_rows=1` and `num_cols=1`. Those terrain grid overrides are required because the OBJ is already the full fused multi-terrain world; the WBT command handles per-motion origin placement. The multi-terrain script uses PhysX GPU collision stack size `1073741824` by default; the 512MB single-stair setting can overflow on the fused stair mesh and drop contacts.
+
 Useful overrides:
+
+```bash
+# Rebuild the fused assets before launch.
+REBUILD_FUSED_ASSETS=1 ./csp_multiterrain_heightmapwbt.sh
+
+# Use 8 GPUs with 4096 envs per GPU.
+NUM_GPUS=8 ENVS_PER_GPU=4096 ./csp_multiterrain_heightmapwbt.sh
+
+# Run in the foreground and forward extra train_agent.py flags.
+RUN_IN_TMUX=0 ./csp_multiterrain_heightmapwbt.sh --run --training.seed=3
+
+# Fuse a smaller debug subset by requested clip ids or resolved clip names.
+FUSE_CLIPS="45 3 56_outdoor 78_outdoor_stairs_up_down" \
+REBUILD_FUSED_ASSETS=1 ./csp_multiterrain_heightmapwbt.sh
+```
+
+Single-stair useful overrides:
 
 ```bash
 # Run in the foreground instead of tmux.

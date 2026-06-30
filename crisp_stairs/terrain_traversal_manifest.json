@@ -1,0 +1,1005 @@
+{
+  "schema_version": 1,
+  "format": "holosoma_ds_crisp_data_terrain_traversal_subset",
+  "source_root": "/home/ubuntu/FAR/holosoma/data/ds_crisp_data_vggtomega_crisp_terrain_g1",
+  "requested_count": 16,
+  "clip_count": 16,
+  "missing_count": 0,
+  "motion_dir": "/nfs/zzzihanw/crisp_stairs/___crisp_clean_motion",
+  "geometry_dir": "/nfs/zzzihanw/crisp_stairs/___crisp_clean_geometry",
+  "clips": [
+    {
+      "clip_id": "stair_45",
+      "qpos_source": "/home/ubuntu/FAR/holosoma_gt/src/holosoma_retargeting/holosoma_retargeting/demo_results/g1/climbing/crisp_terrain_footsticking_tol2cm_keytrack_fixedmap_pieces/stair_45_original.npz",
+      "terrain_source": "/home/ubuntu/FAR/holosoma_gt/src/holosoma_retargeting/holosoma_retargeting/demo_data/crisp_terrain/stair_45",
+      "motion_output": "/nfs/zzzihanw/crisp_stairs/___crisp_clean_motion/stair_45.npz",
+      "terrain_output": "/nfs/zzzihanw/crisp_stairs/___crisp_clean_geometry/stair_45.obj",
+      "conversion_status": "converted",
+      "geometry": {
+        "status": "exported",
+        "source_dir": "/home/ubuntu/FAR/holosoma_gt/src/holosoma_retargeting/holosoma_retargeting/demo_data/crisp_terrain/stair_45/box_models",
+        "scaled_urdf": "/home/ubuntu/FAR/holosoma_gt/src/holosoma_retargeting/holosoma_retargeting/demo_data/crisp_terrain/stair_45/multi_boxes_scaled_0.83_0.83_0.83.urdf",
+        "scale": [
+          0.8344822966766798,
+          0.8344822966766798,
+          0.8344822966766798
+        ],
+        "piece_count": 32,
+        "vertex_count": 5184,
+        "face_count": 10240
+      },
+      "validation": {
+        "fps": [
+          1
+        ],
+        "joint_pos": [
+          168,
+          36
+        ],
+        "joint_vel": [
+          168,
+          35
+        ],
+        "body_pos_w": [
+          168,
+          51,
+          3
+        ],
+        "body_quat_w": [
+          168,
+          51,
+          4
+        ],
+        "body_lin_vel_w": [
+          168,
+          51,
+          3
+        ],
+        "body_ang_vel_w": [
+          168,
+          51,
+          3
+        ],
+        "joint_names": [
+          29
+        ],
+        "body_names": [
+          51
+        ]
+      },
+      "requested": "45",
+      "converter_log": "/nfs/zzzihanw/crisp_stairs/_logs/stair_45_converter.log"
+    },
+    {
+      "clip_id": "stair_3",
+      "qpos_source": "/home/ubuntu/FAR/holosoma_gt/src/holosoma_retargeting/holosoma_retargeting/demo_results/g1/climbing/crisp_terrain_footsticking_tol2cm_keytrack_fixedmap_pieces/stair_3_original.npz",
+      "terrain_source": "/home/ubuntu/FAR/holosoma_gt/src/holosoma_retargeting/holosoma_retargeting/demo_data/crisp_terrain/stair_3",
+      "motion_output": "/nfs/zzzihanw/crisp_stairs/___crisp_clean_motion/stair_3.npz",
+      "terrain_output": "/nfs/zzzihanw/crisp_stairs/___crisp_clean_geometry/stair_3.obj",
+      "conversion_status": "converted",
+      "geometry": {
+        "status": "exported",
+        "source_dir": "/home/ubuntu/FAR/holosoma_gt/src/holosoma_retargeting/holosoma_retargeting/demo_data/crisp_terrain/stair_3/box_models",
+        "scaled_urdf": "/home/ubuntu/FAR/holosoma_gt/src/holosoma_retargeting/holosoma_retargeting/demo_data/crisp_terrain/stair_3/multi_boxes_scaled_0.82_0.82_0.82.urdf",
+        "scale": [
+          0.8165648674598575,
+          0.8165648674598575,
+          0.8165648674598575
+        ],
+        "piece_count": 80,
+        "vertex_count": 12960,
+        "face_count": 25600
+      },
+      "validation": {
+        "fps": [
+          1
+        ],
+        "joint_pos": [
+          360,
+          36
+        ],
+        "joint_vel": [
+          360,
+          35
+        ],
+        "body_pos_w": [
+          360,
+          51,
+          3
+        ],
+        "body_quat_w": [
+          360,
+          51,
+          4
+        ],
+        "body_lin_vel_w": [
+          360,
+          51,
+          3
+        ],
+        "body_ang_vel_w": [
+          360,
+          51,
+          3
+        ],
+        "joint_names": [
+          29
+        ],
+        "body_names": [
+          51
+        ]
+      },
+      "requested": "3",
+      "converter_log": "/nfs/zzzihanw/crisp_stairs/_logs/stair_3_converter.log"
+    },
+    {
+      "clip_id": "56_outdoor_stairs_up_down",
+      "qpos_source": "/home/ubuntu/FAR/holosoma_gt/src/holosoma_retargeting/holosoma_retargeting/demo_results/g1/climbing/crisp_terrain_footsticking_tol2cm_keytrack_fixedmap_pieces/56_outdoor_stairs_up_down_original.npz",
+      "terrain_source": "/home/ubuntu/FAR/holosoma_gt/src/holosoma_retargeting/holosoma_retargeting/demo_data/crisp_terrain/56_outdoor_stairs_up_down",
+      "motion_output": "/nfs/zzzihanw/crisp_stairs/___crisp_clean_motion/56_outdoor_stairs_up_down.npz",
+      "terrain_output": "/nfs/zzzihanw/crisp_stairs/___crisp_clean_geometry/56_outdoor_stairs_up_down.obj",
+      "conversion_status": "converted",
+      "geometry": {
+        "status": "exported",
+        "source_dir": "/home/ubuntu/FAR/holosoma_gt/src/holosoma_retargeting/holosoma_retargeting/demo_data/crisp_terrain/56_outdoor_stairs_up_down/box_models",
+        "scaled_urdf": "/home/ubuntu/FAR/holosoma_gt/src/holosoma_retargeting/holosoma_retargeting/demo_data/crisp_terrain/56_outdoor_stairs_up_down/multi_boxes_scaled_0.86_0.86_0.86.urdf",
+        "scale": [
+          0.8579007369929165,
+          0.8579007369929165,
+          0.8579007369929165
+        ],
+        "piece_count": 48,
+        "vertex_count": 7776,
+        "face_count": 15360
+      },
+      "validation": {
+        "fps": [
+          1
+        ],
+        "joint_pos": [
+          199,
+          36
+        ],
+        "joint_vel": [
+          199,
+          35
+        ],
+        "body_pos_w": [
+          199,
+          51,
+          3
+        ],
+        "body_quat_w": [
+          199,
+          51,
+          4
+        ],
+        "body_lin_vel_w": [
+          199,
+          51,
+          3
+        ],
+        "body_ang_vel_w": [
+          199,
+          51,
+          3
+        ],
+        "joint_names": [
+          29
+        ],
+        "body_names": [
+          51
+        ]
+      },
+      "requested": "56_outdoor",
+      "converter_log": "/nfs/zzzihanw/crisp_stairs/_logs/56_outdoor_stairs_up_down_converter.log"
+    },
+    {
+      "clip_id": "78_outdoor_stairs_up_down",
+      "qpos_source": "/home/ubuntu/FAR/holosoma_gt/src/holosoma_retargeting/holosoma_retargeting/demo_results/g1/climbing/crisp_terrain_footsticking_tol2cm_keytrack_fixedmap_pieces/78_outdoor_stairs_up_down_original.npz",
+      "terrain_source": "/home/ubuntu/FAR/holosoma_gt/src/holosoma_retargeting/holosoma_retargeting/demo_data/crisp_terrain/78_outdoor_stairs_up_down",
+      "motion_output": "/nfs/zzzihanw/crisp_stairs/___crisp_clean_motion/78_outdoor_stairs_up_down.npz",
+      "terrain_output": "/nfs/zzzihanw/crisp_stairs/___crisp_clean_geometry/78_outdoor_stairs_up_down.obj",
+      "conversion_status": "converted",
+      "geometry": {
+        "status": "exported",
+        "source_dir": "/home/ubuntu/FAR/holosoma_gt/src/holosoma_retargeting/holosoma_retargeting/demo_data/crisp_terrain/78_outdoor_stairs_up_down/box_models",
+        "scaled_urdf": "/home/ubuntu/FAR/holosoma_gt/src/holosoma_retargeting/holosoma_retargeting/demo_data/crisp_terrain/78_outdoor_stairs_up_down/multi_boxes_scaled_0.84_0.84_0.84.urdf",
+        "scale": [
+          0.8449218984458894,
+          0.8449218984458894,
+          0.8449218984458894
+        ],
+        "piece_count": 51,
+        "vertex_count": 8262,
+        "face_count": 16320
+      },
+      "validation": {
+        "fps": [
+          1
+        ],
+        "joint_pos": [
+          199,
+          36
+        ],
+        "joint_vel": [
+          199,
+          35
+        ],
+        "body_pos_w": [
+          199,
+          51,
+          3
+        ],
+        "body_quat_w": [
+          199,
+          51,
+          4
+        ],
+        "body_lin_vel_w": [
+          199,
+          51,
+          3
+        ],
+        "body_ang_vel_w": [
+          199,
+          51,
+          3
+        ],
+        "joint_names": [
+          29
+        ],
+        "body_names": [
+          51
+        ]
+      },
+      "requested": "78_outdoor_stairs_up_down",
+      "converter_log": "/nfs/zzzihanw/crisp_stairs/_logs/78_outdoor_stairs_up_down_converter.log"
+    },
+    {
+      "clip_id": "stair_48",
+      "qpos_source": "/home/ubuntu/FAR/holosoma_gt/src/holosoma_retargeting/holosoma_retargeting/demo_results/g1/climbing/crisp_terrain_footsticking_tol2cm_keytrack_fixedmap_pieces/stair_48_original.npz",
+      "terrain_source": "/home/ubuntu/FAR/holosoma_gt/src/holosoma_retargeting/holosoma_retargeting/demo_data/crisp_terrain/stair_48",
+      "motion_output": "/nfs/zzzihanw/crisp_stairs/___crisp_clean_motion/stair_48.npz",
+      "terrain_output": "/nfs/zzzihanw/crisp_stairs/___crisp_clean_geometry/stair_48.obj",
+      "conversion_status": "converted",
+      "geometry": {
+        "status": "exported",
+        "source_dir": "/home/ubuntu/FAR/holosoma_gt/src/holosoma_retargeting/holosoma_retargeting/demo_data/crisp_terrain/stair_48/box_models",
+        "scaled_urdf": "/home/ubuntu/FAR/holosoma_gt/src/holosoma_retargeting/holosoma_retargeting/demo_data/crisp_terrain/stair_48/multi_boxes_scaled_0.84_0.84_0.84.urdf",
+        "scale": [
+          0.8353342970426516,
+          0.8353342970426516,
+          0.8353342970426516
+        ],
+        "piece_count": 41,
+        "vertex_count": 6642,
+        "face_count": 13120
+      },
+      "validation": {
+        "fps": [
+          1
+        ],
+        "joint_pos": [
+          168,
+          36
+        ],
+        "joint_vel": [
+          168,
+          35
+        ],
+        "body_pos_w": [
+          168,
+          51,
+          3
+        ],
+        "body_quat_w": [
+          168,
+          51,
+          4
+        ],
+        "body_lin_vel_w": [
+          168,
+          51,
+          3
+        ],
+        "body_ang_vel_w": [
+          168,
+          51,
+          3
+        ],
+        "joint_names": [
+          29
+        ],
+        "body_names": [
+          51
+        ]
+      },
+      "requested": "48",
+      "converter_log": "/nfs/zzzihanw/crisp_stairs/_logs/stair_48_converter.log"
+    },
+    {
+      "clip_id": "stair_50",
+      "qpos_source": "/home/ubuntu/FAR/holosoma_gt/src/holosoma_retargeting/holosoma_retargeting/demo_results/g1/climbing/crisp_terrain_footsticking_tol2cm_keytrack_fixedmap_pieces/stair_50_original.npz",
+      "terrain_source": "/home/ubuntu/FAR/holosoma_gt/src/holosoma_retargeting/holosoma_retargeting/demo_data/crisp_terrain/stair_50",
+      "motion_output": "/nfs/zzzihanw/crisp_stairs/___crisp_clean_motion/stair_50.npz",
+      "terrain_output": "/nfs/zzzihanw/crisp_stairs/___crisp_clean_geometry/stair_50.obj",
+      "conversion_status": "converted",
+      "geometry": {
+        "status": "exported",
+        "source_dir": "/home/ubuntu/FAR/holosoma_gt/src/holosoma_retargeting/holosoma_retargeting/demo_data/crisp_terrain/stair_50/box_models",
+        "scaled_urdf": "/home/ubuntu/FAR/holosoma_gt/src/holosoma_retargeting/holosoma_retargeting/demo_data/crisp_terrain/stair_50/multi_boxes_scaled_0.82_0.82_0.82.urdf",
+        "scale": [
+          0.8226600069093868,
+          0.8226600069093868,
+          0.8226600069093868
+        ],
+        "piece_count": 53,
+        "vertex_count": 8586,
+        "face_count": 16960
+      },
+      "validation": {
+        "fps": [
+          1
+        ],
+        "joint_pos": [
+          168,
+          36
+        ],
+        "joint_vel": [
+          168,
+          35
+        ],
+        "body_pos_w": [
+          168,
+          51,
+          3
+        ],
+        "body_quat_w": [
+          168,
+          51,
+          4
+        ],
+        "body_lin_vel_w": [
+          168,
+          51,
+          3
+        ],
+        "body_ang_vel_w": [
+          168,
+          51,
+          3
+        ],
+        "joint_names": [
+          29
+        ],
+        "body_names": [
+          51
+        ]
+      },
+      "requested": "50",
+      "converter_log": "/nfs/zzzihanw/crisp_stairs/_logs/stair_50_converter.log"
+    },
+    {
+      "clip_id": "stair_51",
+      "qpos_source": "/home/ubuntu/FAR/holosoma_gt/src/holosoma_retargeting/holosoma_retargeting/demo_results/g1/climbing/crisp_terrain_footsticking_tol2cm_keytrack_fixedmap_pieces/stair_51_original.npz",
+      "terrain_source": "/home/ubuntu/FAR/holosoma_gt/src/holosoma_retargeting/holosoma_retargeting/demo_data/crisp_terrain/stair_51",
+      "motion_output": "/nfs/zzzihanw/crisp_stairs/___crisp_clean_motion/stair_51.npz",
+      "terrain_output": "/nfs/zzzihanw/crisp_stairs/___crisp_clean_geometry/stair_51.obj",
+      "conversion_status": "converted",
+      "geometry": {
+        "status": "exported",
+        "source_dir": "/home/ubuntu/FAR/holosoma_gt/src/holosoma_retargeting/holosoma_retargeting/demo_data/crisp_terrain/stair_51/box_models",
+        "scaled_urdf": "/home/ubuntu/FAR/holosoma_gt/src/holosoma_retargeting/holosoma_retargeting/demo_data/crisp_terrain/stair_51/multi_boxes_scaled_0.84_0.84_0.84.urdf",
+        "scale": [
+          0.8406051831193945,
+          0.8406051831193945,
+          0.8406051831193945
+        ],
+        "piece_count": 54,
+        "vertex_count": 8748,
+        "face_count": 17280
+      },
+      "validation": {
+        "fps": [
+          1
+        ],
+        "joint_pos": [
+          168,
+          36
+        ],
+        "joint_vel": [
+          168,
+          35
+        ],
+        "body_pos_w": [
+          168,
+          51,
+          3
+        ],
+        "body_quat_w": [
+          168,
+          51,
+          4
+        ],
+        "body_lin_vel_w": [
+          168,
+          51,
+          3
+        ],
+        "body_ang_vel_w": [
+          168,
+          51,
+          3
+        ],
+        "joint_names": [
+          29
+        ],
+        "body_names": [
+          51
+        ]
+      },
+      "requested": "51",
+      "converter_log": "/nfs/zzzihanw/crisp_stairs/_logs/stair_51_converter.log"
+    },
+    {
+      "clip_id": "stair_53",
+      "qpos_source": "/home/ubuntu/FAR/holosoma_gt/src/holosoma_retargeting/holosoma_retargeting/demo_results/g1/climbing/crisp_terrain_footsticking_tol2cm_keytrack_fixedmap_pieces/stair_53_original.npz",
+      "terrain_source": "/home/ubuntu/FAR/holosoma_gt/src/holosoma_retargeting/holosoma_retargeting/demo_data/crisp_terrain/stair_53",
+      "motion_output": "/nfs/zzzihanw/crisp_stairs/___crisp_clean_motion/stair_53.npz",
+      "terrain_output": "/nfs/zzzihanw/crisp_stairs/___crisp_clean_geometry/stair_53.obj",
+      "conversion_status": "converted",
+      "geometry": {
+        "status": "exported",
+        "source_dir": "/home/ubuntu/FAR/holosoma_gt/src/holosoma_retargeting/holosoma_retargeting/demo_data/crisp_terrain/stair_53/box_models",
+        "scaled_urdf": "/home/ubuntu/FAR/holosoma_gt/src/holosoma_retargeting/holosoma_retargeting/demo_data/crisp_terrain/stair_53/multi_boxes_scaled_0.82_0.82_0.82.urdf",
+        "scale": [
+          0.8208115884488818,
+          0.8208115884488818,
+          0.8208115884488818
+        ],
+        "piece_count": 37,
+        "vertex_count": 5994,
+        "face_count": 11840
+      },
+      "validation": {
+        "fps": [
+          1
+        ],
+        "joint_pos": [
+          168,
+          36
+        ],
+        "joint_vel": [
+          168,
+          35
+        ],
+        "body_pos_w": [
+          168,
+          51,
+          3
+        ],
+        "body_quat_w": [
+          168,
+          51,
+          4
+        ],
+        "body_lin_vel_w": [
+          168,
+          51,
+          3
+        ],
+        "body_ang_vel_w": [
+          168,
+          51,
+          3
+        ],
+        "joint_names": [
+          29
+        ],
+        "body_names": [
+          51
+        ]
+      },
+      "requested": "53",
+      "converter_log": "/nfs/zzzihanw/crisp_stairs/_logs/stair_53_converter.log"
+    },
+    {
+      "clip_id": "stair_54",
+      "qpos_source": "/home/ubuntu/FAR/holosoma_gt/src/holosoma_retargeting/holosoma_retargeting/demo_results/g1/climbing/crisp_terrain_footsticking_tol2cm_keytrack_fixedmap_pieces/stair_54_original.npz",
+      "terrain_source": "/home/ubuntu/FAR/holosoma_gt/src/holosoma_retargeting/holosoma_retargeting/demo_data/crisp_terrain/stair_54",
+      "motion_output": "/nfs/zzzihanw/crisp_stairs/___crisp_clean_motion/stair_54.npz",
+      "terrain_output": "/nfs/zzzihanw/crisp_stairs/___crisp_clean_geometry/stair_54.obj",
+      "conversion_status": "converted",
+      "geometry": {
+        "status": "exported",
+        "source_dir": "/home/ubuntu/FAR/holosoma_gt/src/holosoma_retargeting/holosoma_retargeting/demo_data/crisp_terrain/stair_54/box_models",
+        "scaled_urdf": "/home/ubuntu/FAR/holosoma_gt/src/holosoma_retargeting/holosoma_retargeting/demo_data/crisp_terrain/stair_54/multi_boxes_scaled_0.84_0.84_0.84.urdf",
+        "scale": [
+          0.8380230943386516,
+          0.8380230943386516,
+          0.8380230943386516
+        ],
+        "piece_count": 44,
+        "vertex_count": 7128,
+        "face_count": 14080
+      },
+      "validation": {
+        "fps": [
+          1
+        ],
+        "joint_pos": [
+          168,
+          36
+        ],
+        "joint_vel": [
+          168,
+          35
+        ],
+        "body_pos_w": [
+          168,
+          51,
+          3
+        ],
+        "body_quat_w": [
+          168,
+          51,
+          4
+        ],
+        "body_lin_vel_w": [
+          168,
+          51,
+          3
+        ],
+        "body_ang_vel_w": [
+          168,
+          51,
+          3
+        ],
+        "joint_names": [
+          29
+        ],
+        "body_names": [
+          51
+        ]
+      },
+      "requested": "54",
+      "converter_log": "/nfs/zzzihanw/crisp_stairs/_logs/stair_54_converter.log"
+    },
+    {
+      "clip_id": "stair_61",
+      "qpos_source": "/home/ubuntu/FAR/holosoma_gt/src/holosoma_retargeting/holosoma_retargeting/demo_results/g1/climbing/crisp_terrain_footsticking_tol2cm_keytrack_fixedmap_pieces/stair_61_original.npz",
+      "terrain_source": "/home/ubuntu/FAR/holosoma_gt/src/holosoma_retargeting/holosoma_retargeting/demo_data/crisp_terrain/stair_61",
+      "motion_output": "/nfs/zzzihanw/crisp_stairs/___crisp_clean_motion/stair_61.npz",
+      "terrain_output": "/nfs/zzzihanw/crisp_stairs/___crisp_clean_geometry/stair_61.obj",
+      "conversion_status": "converted",
+      "geometry": {
+        "status": "exported",
+        "source_dir": "/home/ubuntu/FAR/holosoma_gt/src/holosoma_retargeting/holosoma_retargeting/demo_data/crisp_terrain/stair_61/box_models",
+        "scaled_urdf": "/home/ubuntu/FAR/holosoma_gt/src/holosoma_retargeting/holosoma_retargeting/demo_data/crisp_terrain/stair_61/multi_boxes_scaled_0.81_0.81_0.81.urdf",
+        "scale": [
+          0.8080015084497119,
+          0.8080015084497119,
+          0.8080015084497119
+        ],
+        "piece_count": 39,
+        "vertex_count": 6318,
+        "face_count": 12480
+      },
+      "validation": {
+        "fps": [
+          1
+        ],
+        "joint_pos": [
+          168,
+          36
+        ],
+        "joint_vel": [
+          168,
+          35
+        ],
+        "body_pos_w": [
+          168,
+          51,
+          3
+        ],
+        "body_quat_w": [
+          168,
+          51,
+          4
+        ],
+        "body_lin_vel_w": [
+          168,
+          51,
+          3
+        ],
+        "body_ang_vel_w": [
+          168,
+          51,
+          3
+        ],
+        "joint_names": [
+          29
+        ],
+        "body_names": [
+          51
+        ]
+      },
+      "requested": "61",
+      "converter_log": "/nfs/zzzihanw/crisp_stairs/_logs/stair_61_converter.log"
+    },
+    {
+      "clip_id": "stair_69",
+      "qpos_source": "/home/ubuntu/FAR/holosoma_gt/src/holosoma_retargeting/holosoma_retargeting/demo_results/g1/climbing/crisp_terrain_footsticking_tol2cm_keytrack_fixedmap_pieces/stair_69_original.npz",
+      "terrain_source": "/home/ubuntu/FAR/holosoma_gt/src/holosoma_retargeting/holosoma_retargeting/demo_data/crisp_terrain/stair_69",
+      "motion_output": "/nfs/zzzihanw/crisp_stairs/___crisp_clean_motion/stair_69.npz",
+      "terrain_output": "/nfs/zzzihanw/crisp_stairs/___crisp_clean_geometry/stair_69.obj",
+      "conversion_status": "converted",
+      "geometry": {
+        "status": "exported",
+        "source_dir": "/home/ubuntu/FAR/holosoma_gt/src/holosoma_retargeting/holosoma_retargeting/demo_data/crisp_terrain/stair_69/box_models",
+        "scaled_urdf": "/home/ubuntu/FAR/holosoma_gt/src/holosoma_retargeting/holosoma_retargeting/demo_data/crisp_terrain/stair_69/multi_boxes_scaled_0.83_0.83_0.83.urdf",
+        "scale": [
+          0.8266403008852464,
+          0.8266403008852464,
+          0.8266403008852464
+        ],
+        "piece_count": 40,
+        "vertex_count": 6480,
+        "face_count": 12800
+      },
+      "validation": {
+        "fps": [
+          1
+        ],
+        "joint_pos": [
+          168,
+          36
+        ],
+        "joint_vel": [
+          168,
+          35
+        ],
+        "body_pos_w": [
+          168,
+          51,
+          3
+        ],
+        "body_quat_w": [
+          168,
+          51,
+          4
+        ],
+        "body_lin_vel_w": [
+          168,
+          51,
+          3
+        ],
+        "body_ang_vel_w": [
+          168,
+          51,
+          3
+        ],
+        "joint_names": [
+          29
+        ],
+        "body_names": [
+          51
+        ]
+      },
+      "requested": "69",
+      "converter_log": "/nfs/zzzihanw/crisp_stairs/_logs/stair_69_converter.log"
+    },
+    {
+      "clip_id": "stair_75",
+      "qpos_source": "/home/ubuntu/FAR/holosoma_gt/src/holosoma_retargeting/holosoma_retargeting/demo_results/g1/climbing/crisp_terrain_footsticking_tol2cm_keytrack_fixedmap_pieces/stair_75_original.npz",
+      "terrain_source": "/home/ubuntu/FAR/holosoma_gt/src/holosoma_retargeting/holosoma_retargeting/demo_data/crisp_terrain/stair_75",
+      "motion_output": "/nfs/zzzihanw/crisp_stairs/___crisp_clean_motion/stair_75.npz",
+      "terrain_output": "/nfs/zzzihanw/crisp_stairs/___crisp_clean_geometry/stair_75.obj",
+      "conversion_status": "converted",
+      "geometry": {
+        "status": "exported",
+        "source_dir": "/home/ubuntu/FAR/holosoma_gt/src/holosoma_retargeting/holosoma_retargeting/demo_data/crisp_terrain/stair_75/box_models",
+        "scaled_urdf": "/home/ubuntu/FAR/holosoma_gt/src/holosoma_retargeting/holosoma_retargeting/demo_data/crisp_terrain/stair_75/multi_boxes_scaled_0.83_0.83_0.83.urdf",
+        "scale": [
+          0.8263593601465825,
+          0.8263593601465825,
+          0.8263593601465825
+        ],
+        "piece_count": 68,
+        "vertex_count": 11016,
+        "face_count": 21760
+      },
+      "validation": {
+        "fps": [
+          1
+        ],
+        "joint_pos": [
+          353,
+          36
+        ],
+        "joint_vel": [
+          353,
+          35
+        ],
+        "body_pos_w": [
+          353,
+          51,
+          3
+        ],
+        "body_quat_w": [
+          353,
+          51,
+          4
+        ],
+        "body_lin_vel_w": [
+          353,
+          51,
+          3
+        ],
+        "body_ang_vel_w": [
+          353,
+          51,
+          3
+        ],
+        "joint_names": [
+          29
+        ],
+        "body_names": [
+          51
+        ]
+      },
+      "requested": "75",
+      "converter_log": "/nfs/zzzihanw/crisp_stairs/_logs/stair_75_converter.log"
+    },
+    {
+      "clip_id": "stair_78",
+      "qpos_source": "/home/ubuntu/FAR/holosoma_gt/src/holosoma_retargeting/holosoma_retargeting/demo_results/g1/climbing/crisp_terrain_footsticking_tol2cm_keytrack_fixedmap_pieces/stair_78_original.npz",
+      "terrain_source": "/home/ubuntu/FAR/holosoma_gt/src/holosoma_retargeting/holosoma_retargeting/demo_data/crisp_terrain/stair_78",
+      "motion_output": "/nfs/zzzihanw/crisp_stairs/___crisp_clean_motion/stair_78.npz",
+      "terrain_output": "/nfs/zzzihanw/crisp_stairs/___crisp_clean_geometry/stair_78.obj",
+      "conversion_status": "converted",
+      "geometry": {
+        "status": "exported",
+        "source_dir": "/home/ubuntu/FAR/holosoma_gt/src/holosoma_retargeting/holosoma_retargeting/demo_data/crisp_terrain/stair_78/box_models",
+        "scaled_urdf": "/home/ubuntu/FAR/holosoma_gt/src/holosoma_retargeting/holosoma_retargeting/demo_data/crisp_terrain/stair_78/multi_boxes_scaled_0.84_0.84_0.84.urdf",
+        "scale": [
+          0.8375411650643176,
+          0.8375411650643176,
+          0.8375411650643176
+        ],
+        "piece_count": 99,
+        "vertex_count": 16038,
+        "face_count": 31680
+      },
+      "validation": {
+        "fps": [
+          1
+        ],
+        "joint_pos": [
+          465,
+          36
+        ],
+        "joint_vel": [
+          465,
+          35
+        ],
+        "body_pos_w": [
+          465,
+          51,
+          3
+        ],
+        "body_quat_w": [
+          465,
+          51,
+          4
+        ],
+        "body_lin_vel_w": [
+          465,
+          51,
+          3
+        ],
+        "body_ang_vel_w": [
+          465,
+          51,
+          3
+        ],
+        "joint_names": [
+          29
+        ],
+        "body_names": [
+          51
+        ]
+      },
+      "requested": "78",
+      "converter_log": "/nfs/zzzihanw/crisp_stairs/_logs/stair_78_converter.log"
+    },
+    {
+      "clip_id": "stair_83",
+      "qpos_source": "/home/ubuntu/FAR/holosoma_gt/src/holosoma_retargeting/holosoma_retargeting/demo_results/g1/climbing/crisp_terrain_footsticking_tol2cm_keytrack_fixedmap_pieces/stair_83_original.npz",
+      "terrain_source": "/home/ubuntu/FAR/holosoma_gt/src/holosoma_retargeting/holosoma_retargeting/demo_data/crisp_terrain/stair_83",
+      "motion_output": "/nfs/zzzihanw/crisp_stairs/___crisp_clean_motion/stair_83.npz",
+      "terrain_output": "/nfs/zzzihanw/crisp_stairs/___crisp_clean_geometry/stair_83.obj",
+      "conversion_status": "converted",
+      "geometry": {
+        "status": "exported",
+        "source_dir": "/home/ubuntu/FAR/holosoma_gt/src/holosoma_retargeting/holosoma_retargeting/demo_data/crisp_terrain/stair_83/box_models",
+        "scaled_urdf": "/home/ubuntu/FAR/holosoma_gt/src/holosoma_retargeting/holosoma_retargeting/demo_data/crisp_terrain/stair_83/multi_boxes_scaled_0.82_0.82_0.82.urdf",
+        "scale": [
+          0.8165358440021173,
+          0.8165358440021173,
+          0.8165358440021173
+        ],
+        "piece_count": 90,
+        "vertex_count": 14580,
+        "face_count": 28800
+      },
+      "validation": {
+        "fps": [
+          1
+        ],
+        "joint_pos": [
+          503,
+          36
+        ],
+        "joint_vel": [
+          503,
+          35
+        ],
+        "body_pos_w": [
+          503,
+          51,
+          3
+        ],
+        "body_quat_w": [
+          503,
+          51,
+          4
+        ],
+        "body_lin_vel_w": [
+          503,
+          51,
+          3
+        ],
+        "body_ang_vel_w": [
+          503,
+          51,
+          3
+        ],
+        "joint_names": [
+          29
+        ],
+        "body_names": [
+          51
+        ]
+      },
+      "requested": "83",
+      "converter_log": "/nfs/zzzihanw/crisp_stairs/_logs/stair_83_converter.log"
+    },
+    {
+      "clip_id": "stair_95",
+      "qpos_source": "/home/ubuntu/FAR/holosoma_gt/src/holosoma_retargeting/holosoma_retargeting/demo_results/g1/climbing/crisp_terrain_footsticking_tol2cm_keytrack_fixedmap_pieces/stair_95_original.npz",
+      "terrain_source": "/home/ubuntu/FAR/holosoma_gt/src/holosoma_retargeting/holosoma_retargeting/demo_data/crisp_terrain/stair_95",
+      "motion_output": "/nfs/zzzihanw/crisp_stairs/___crisp_clean_motion/stair_95.npz",
+      "terrain_output": "/nfs/zzzihanw/crisp_stairs/___crisp_clean_geometry/stair_95.obj",
+      "conversion_status": "converted",
+      "geometry": {
+        "status": "exported",
+        "source_dir": "/home/ubuntu/FAR/holosoma_gt/src/holosoma_retargeting/holosoma_retargeting/demo_data/crisp_terrain/stair_95/box_models",
+        "scaled_urdf": "/home/ubuntu/FAR/holosoma_gt/src/holosoma_retargeting/holosoma_retargeting/demo_data/crisp_terrain/stair_95/multi_boxes_scaled_0.84_0.84_0.84.urdf",
+        "scale": [
+          0.8412405548149504,
+          0.8412405548149504,
+          0.8412405548149504
+        ],
+        "piece_count": 50,
+        "vertex_count": 8100,
+        "face_count": 16000
+      },
+      "validation": {
+        "fps": [
+          1
+        ],
+        "joint_pos": [
+          219,
+          36
+        ],
+        "joint_vel": [
+          219,
+          35
+        ],
+        "body_pos_w": [
+          219,
+          51,
+          3
+        ],
+        "body_quat_w": [
+          219,
+          51,
+          4
+        ],
+        "body_lin_vel_w": [
+          219,
+          51,
+          3
+        ],
+        "body_ang_vel_w": [
+          219,
+          51,
+          3
+        ],
+        "joint_names": [
+          29
+        ],
+        "body_names": [
+          51
+        ]
+      },
+      "requested": "95",
+      "converter_log": "/nfs/zzzihanw/crisp_stairs/_logs/stair_95_converter.log"
+    },
+    {
+      "clip_id": "stair_101",
+      "qpos_source": "/home/ubuntu/FAR/holosoma_gt/src/holosoma_retargeting/holosoma_retargeting/demo_results/g1/climbing/crisp_terrain_footsticking_tol2cm_keytrack_fixedmap_pieces/stair_101_original.npz",
+      "terrain_source": "/home/ubuntu/FAR/holosoma_gt/src/holosoma_retargeting/holosoma_retargeting/demo_data/crisp_terrain/stair_101",
+      "motion_output": "/nfs/zzzihanw/crisp_stairs/___crisp_clean_motion/stair_101.npz",
+      "terrain_output": "/nfs/zzzihanw/crisp_stairs/___crisp_clean_geometry/stair_101.obj",
+      "conversion_status": "converted",
+      "geometry": {
+        "status": "exported",
+        "source_dir": "/home/ubuntu/FAR/holosoma_gt/src/holosoma_retargeting/holosoma_retargeting/demo_data/crisp_terrain/stair_101/box_models",
+        "scaled_urdf": "/home/ubuntu/FAR/holosoma_gt/src/holosoma_retargeting/holosoma_retargeting/demo_data/crisp_terrain/stair_101/multi_boxes_scaled_0.81_0.81_0.81.urdf",
+        "scale": [
+          0.8110368892290377,
+          0.8110368892290377,
+          0.8110368892290377
+        ],
+        "piece_count": 44,
+        "vertex_count": 7128,
+        "face_count": 14080
+      },
+      "validation": {
+        "fps": [
+          1
+        ],
+        "joint_pos": [
+          254,
+          36
+        ],
+        "joint_vel": [
+          254,
+          35
+        ],
+        "body_pos_w": [
+          254,
+          51,
+          3
+        ],
+        "body_quat_w": [
+          254,
+          51,
+          4
+        ],
+        "body_lin_vel_w": [
+          254,
+          51,
+          3
+        ],
+        "body_ang_vel_w": [
+          254,
+          51,
+          3
+        ],
+        "joint_names": [
+          29
+        ],
+        "body_names": [
+          51
+        ]
+      },
+      "requested": "101",
+      "converter_log": "/nfs/zzzihanw/crisp_stairs/_logs/stair_101_converter.log"
+    }
+  ],
+  "missing": []
+}

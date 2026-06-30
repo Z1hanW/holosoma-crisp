@@ -1,0 +1,582 @@
+{
+  "schema_version": 1,
+  "format": "holosoma_crisp_stairs_multiterrain_fused",
+  "clip_count": 16,
+  "total_frames": 3896,
+  "cols": 4,
+  "pitch": [
+    10.999928090000001,
+    16.322948949999997
+  ],
+  "margin": 2.0,
+  "floor": {
+    "enabled": true,
+    "margin": 2.0,
+    "top_z": 0.0,
+    "thickness": 0.1
+  },
+  "motion_file": "crisp_stairs/_fused/motion_stairs_16_multiterrain.npz",
+  "terrain_file": "crisp_stairs/_fused/motion_stairs_16_multiterrain.obj",
+  "clips": [
+    {
+      "motion_id": 0,
+      "clip_id": "stair_45",
+      "motion_file": "crisp_stairs/___crisp_clean_motion/stair_45.npz",
+      "terrain_file": "crisp_stairs/___crisp_clean_geometry/stair_45.obj",
+      "motion_length": 168,
+      "terrain_origin": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "local_bounds_xy": [
+        [
+          -3.15772273,
+          0.0
+        ],
+        [
+          1.53032742,
+          9.55040611
+        ]
+      ],
+      "translated_mesh_bounds": [
+        [
+          -3.15772273,
+          1.17594147,
+          -0.72382036
+        ],
+        [
+          1.53032742,
+          9.55040611,
+          4.92912521
+        ]
+      ]
+    },
+    {
+      "motion_id": 1,
+      "clip_id": "stair_3",
+      "motion_file": "crisp_stairs/___crisp_clean_motion/stair_3.npz",
+      "terrain_file": "crisp_stairs/___crisp_clean_geometry/stair_3.obj",
+      "motion_length": 360,
+      "terrain_origin": [
+        10.99992847442627,
+        0.0,
+        0.0
+      ],
+      "local_bounds_xy": [
+        [
+          -0.93967889,
+          0.0
+        ],
+        [
+          5.64342913,
+          3.82998558
+        ]
+      ],
+      "translated_mesh_bounds": [
+        [
+          10.06024958442627,
+          0.00595139,
+          -0.03697416
+        ],
+        [
+          16.64335760442627,
+          3.82998558,
+          5.08389757
+        ]
+      ]
+    },
+    {
+      "motion_id": 2,
+      "clip_id": "56_outdoor_stairs_up_down",
+      "motion_file": "crisp_stairs/___crisp_clean_motion/56_outdoor_stairs_up_down.npz",
+      "terrain_file": "crisp_stairs/___crisp_clean_geometry/56_outdoor_stairs_up_down.obj",
+      "motion_length": 199,
+      "terrain_origin": [
+        21.99985694885254,
+        0.0,
+        0.0
+      ],
+      "local_bounds_xy": [
+        [
+          -5.2626841,
+          -0.37392342
+        ],
+        [
+          1.57626076,
+          3.56176982
+        ]
+      ],
+      "translated_mesh_bounds": [
+        [
+          16.737172848852538,
+          -0.37392342,
+          -0.54391017
+        ],
+        [
+          23.57611770885254,
+          3.56176982,
+          2.15740505
+        ]
+      ]
+    },
+    {
+      "motion_id": 3,
+      "clip_id": "78_outdoor_stairs_up_down",
+      "motion_file": "crisp_stairs/___crisp_clean_motion/78_outdoor_stairs_up_down.npz",
+      "terrain_file": "crisp_stairs/___crisp_clean_geometry/78_outdoor_stairs_up_down.obj",
+      "motion_length": 199,
+      "terrain_origin": [
+        32.99978256225586,
+        0.0,
+        0.0
+      ],
+      "local_bounds_xy": [
+        [
+          -2.94628576,
+          -1.85745537
+        ],
+        [
+          0.87090036,
+          3.2961446137693704
+        ]
+      ],
+      "translated_mesh_bounds": [
+        [
+          30.05349680225586,
+          -1.85745537,
+          0.0
+        ],
+        [
+          33.87068292225586,
+          3.26566404,
+          3.87406121
+        ]
+      ]
+    },
+    {
+      "motion_id": 4,
+      "clip_id": "stair_48",
+      "motion_file": "crisp_stairs/___crisp_clean_motion/stair_48.npz",
+      "terrain_file": "crisp_stairs/___crisp_clean_geometry/stair_48.obj",
+      "motion_length": 168,
+      "terrain_origin": [
+        0.0,
+        16.322948455810547,
+        0.0
+      ],
+      "local_bounds_xy": [
+        [
+          -0.62161849,
+          0.0
+        ],
+        [
+          0.94935534,
+          7.60050839
+        ]
+      ],
+      "translated_mesh_bounds": [
+        [
+          -0.62161849,
+          17.180362635810546,
+          0.0
+        ],
+        [
+          0.94935534,
+          23.92345684581055,
+          4.23524461
+        ]
+      ]
+    },
+    {
+      "motion_id": 5,
+      "clip_id": "stair_50",
+      "motion_file": "crisp_stairs/___crisp_clean_motion/stair_50.npz",
+      "terrain_file": "crisp_stairs/___crisp_clean_geometry/stair_50.obj",
+      "motion_length": 168,
+      "terrain_origin": [
+        10.99992847442627,
+        16.322948455810547,
+        0.0
+      ],
+      "local_bounds_xy": [
+        [
+          -1.46915732,
+          0.0
+        ],
+        [
+          0.76043874,
+          8.07927026
+        ]
+      ],
+      "translated_mesh_bounds": [
+        [
+          9.530771154426269,
+          16.324401875810548,
+          -0.0141532
+        ],
+        [
+          11.76036721442627,
+          24.402218715810548,
+          4.53603394
+        ]
+      ]
+    },
+    {
+      "motion_id": 6,
+      "clip_id": "stair_51",
+      "motion_file": "crisp_stairs/___crisp_clean_motion/stair_51.npz",
+      "terrain_file": "crisp_stairs/___crisp_clean_geometry/stair_51.obj",
+      "motion_length": 168,
+      "terrain_origin": [
+        21.99985694885254,
+        16.322948455810547,
+        0.0
+      ],
+      "local_bounds_xy": [
+        [
+          -0.94603858,
+          0.0
+        ],
+        [
+          0.89600815,
+          9.88353544
+        ]
+      ],
+      "translated_mesh_bounds": [
+        [
+          21.05381836885254,
+          17.902987375810547,
+          -0.05191766
+        ],
+        [
+          22.89586509885254,
+          26.206483895810546,
+          2.38025026
+        ]
+      ]
+    },
+    {
+      "motion_id": 7,
+      "clip_id": "stair_53",
+      "motion_file": "crisp_stairs/___crisp_clean_motion/stair_53.npz",
+      "terrain_file": "crisp_stairs/___crisp_clean_geometry/stair_53.obj",
+      "motion_length": 168,
+      "terrain_origin": [
+        32.99978256225586,
+        16.322948455810547,
+        0.0
+      ],
+      "local_bounds_xy": [
+        [
+          -1.24467535,
+          0.0
+        ],
+        [
+          0.70979386,
+          6.87559179
+        ]
+      ],
+      "translated_mesh_bounds": [
+        [
+          31.755107212255858,
+          16.862001465810547,
+          -0.00216257
+        ],
+        [
+          33.70957642225586,
+          23.19854024581055,
+          2.97614013
+        ]
+      ]
+    },
+    {
+      "motion_id": 8,
+      "clip_id": "stair_54",
+      "motion_file": "crisp_stairs/___crisp_clean_motion/stair_54.npz",
+      "terrain_file": "crisp_stairs/___crisp_clean_geometry/stair_54.obj",
+      "motion_length": 168,
+      "terrain_origin": [
+        0.0,
+        32.645896911621094,
+        0.0
+      ],
+      "local_bounds_xy": [
+        [
+          -1.26669758,
+          0.0
+        ],
+        [
+          1.6057129,
+          13.01317096
+        ]
+      ],
+      "translated_mesh_bounds": [
+        [
+          -1.26669758,
+          34.07767348162109,
+          -0.03414629
+        ],
+        [
+          1.6057129,
+          45.65906787162109,
+          5.70650923
+        ]
+      ]
+    },
+    {
+      "motion_id": 9,
+      "clip_id": "stair_61",
+      "motion_file": "crisp_stairs/___crisp_clean_motion/stair_61.npz",
+      "terrain_file": "crisp_stairs/___crisp_clean_geometry/stair_61.obj",
+      "motion_length": 168,
+      "terrain_origin": [
+        10.99992847442627,
+        32.645896911621094,
+        0.0
+      ],
+      "local_bounds_xy": [
+        [
+          -0.78537694,
+          0.0
+        ],
+        [
+          0.70893873,
+          6.39201538
+        ]
+      ],
+      "translated_mesh_bounds": [
+        [
+          10.214551534426269,
+          33.424162311621096,
+          0.0
+        ],
+        [
+          11.70886720442627,
+          39.0379122916211,
+          3.29803081
+        ]
+      ]
+    },
+    {
+      "motion_id": 10,
+      "clip_id": "stair_69",
+      "motion_file": "crisp_stairs/___crisp_clean_motion/stair_69.npz",
+      "terrain_file": "crisp_stairs/___crisp_clean_geometry/stair_69.obj",
+      "motion_length": 168,
+      "terrain_origin": [
+        21.99985694885254,
+        32.645896911621094,
+        0.0
+      ],
+      "local_bounds_xy": [
+        [
+          -1.22718373,
+          0.0
+        ],
+        [
+          1.5075629,
+          8.07145933
+        ]
+      ],
+      "translated_mesh_bounds": [
+        [
+          20.77267321885254,
+          33.51429558162109,
+          -0.03990095
+        ],
+        [
+          23.50741984885254,
+          40.71735624162109,
+          3.8796991
+        ]
+      ]
+    },
+    {
+      "motion_id": 11,
+      "clip_id": "stair_75",
+      "motion_file": "crisp_stairs/___crisp_clean_motion/stair_75.npz",
+      "terrain_file": "crisp_stairs/___crisp_clean_geometry/stair_75.obj",
+      "motion_length": 353,
+      "terrain_origin": [
+        32.99978256225586,
+        32.645896911621094,
+        0.0
+      ],
+      "local_bounds_xy": [
+        [
+          -3.49822528,
+          -1.60427253
+        ],
+        [
+          5.50170281,
+          12.71867642
+        ]
+      ],
+      "translated_mesh_bounds": [
+        [
+          29.50155728225586,
+          31.041624381621094,
+          0.0
+        ],
+        [
+          38.50148537225586,
+          45.364573331621095,
+          8.67607898
+        ]
+      ]
+    },
+    {
+      "motion_id": 12,
+      "clip_id": "stair_78",
+      "motion_file": "crisp_stairs/___crisp_clean_motion/stair_78.npz",
+      "terrain_file": "crisp_stairs/___crisp_clean_geometry/stair_78.obj",
+      "motion_length": 465,
+      "terrain_origin": [
+        0.0,
+        48.96884536743164,
+        0.0
+      ],
+      "local_bounds_xy": [
+        [
+          -5.82340421,
+          -1.2303173
+        ],
+        [
+          0.93023332,
+          4.67493135
+        ]
+      ],
+      "translated_mesh_bounds": [
+        [
+          -5.82340421,
+          47.73852806743164,
+          -0.08554853
+        ],
+        [
+          0.93023332,
+          53.64377671743164,
+          3.45918557
+        ]
+      ]
+    },
+    {
+      "motion_id": 13,
+      "clip_id": "stair_83",
+      "motion_file": "crisp_stairs/___crisp_clean_motion/stair_83.npz",
+      "terrain_file": "crisp_stairs/___crisp_clean_geometry/stair_83.obj",
+      "motion_length": 503,
+      "terrain_origin": [
+        10.99992847442627,
+        48.96884536743164,
+        0.0
+      ],
+      "local_bounds_xy": [
+        [
+          -3.62033033,
+          -3.446406
+        ],
+        [
+          0.85102449,
+          4.47494933
+        ]
+      ],
+      "translated_mesh_bounds": [
+        [
+          7.37959814442627,
+          45.52243936743164,
+          0.0
+        ],
+        [
+          11.85095296442627,
+          53.44379469743164,
+          3.32127482
+        ]
+      ]
+    },
+    {
+      "motion_id": 14,
+      "clip_id": "stair_95",
+      "motion_file": "crisp_stairs/___crisp_clean_motion/stair_95.npz",
+      "terrain_file": "crisp_stairs/___crisp_clean_geometry/stair_95.obj",
+      "motion_length": 219,
+      "terrain_origin": [
+        21.99985694885254,
+        48.96884536743164,
+        0.0
+      ],
+      "local_bounds_xy": [
+        [
+          -3.33251222,
+          -1.0810739605040056
+        ],
+        [
+          0.82914368,
+          2.55580101
+        ]
+      ],
+      "translated_mesh_bounds": [
+        [
+          18.66734472885254,
+          48.72867809743164,
+          0.0
+        ],
+        [
+          22.82900062885254,
+          51.524646377431644,
+          4.21843016
+        ]
+      ]
+    },
+    {
+      "motion_id": 15,
+      "clip_id": "stair_101",
+      "motion_file": "crisp_stairs/___crisp_clean_motion/stair_101.npz",
+      "terrain_file": "crisp_stairs/___crisp_clean_geometry/stair_101.obj",
+      "motion_length": 254,
+      "terrain_origin": [
+        32.99978256225586,
+        48.96884536743164,
+        0.0
+      ],
+      "local_bounds_xy": [
+        [
+          -1.62456047,
+          0.0
+        ],
+        [
+          1.94554286,
+          6.32412097
+        ]
+      ],
+      "translated_mesh_bounds": [
+        [
+          31.37522209225586,
+          49.44873740743164,
+          -0.01365158
+        ],
+        [
+          34.94532542225586,
+          55.29296633743164,
+          2.37920294
+        ]
+      ]
+    }
+  ],
+  "mesh": {
+    "vertices": 141068,
+    "faces": 278592,
+    "bounds": [
+      [
+        -7.82340421,
+        -3.8574553700000007,
+        -0.72382036
+      ],
+      [
+        40.50148537225586,
+        57.29296633743164,
+        8.67607898
+      ]
+    ]
+  }
+}

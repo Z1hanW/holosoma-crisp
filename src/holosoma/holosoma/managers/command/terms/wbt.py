@@ -140,6 +140,9 @@ class MotionLoader:
             self._body_lin_vel_w = torch.tensor(body_lin_vel_w_raw, dtype=torch.float32, device=device)
             self._body_ang_vel_w = torch.tensor(body_ang_vel_w_raw, dtype=torch.float32, device=device)
 
+            self._set_motion_boundaries(data, motion_file, device)
+            self._load_terrain_origins(data, motion_file, device)
+
             # add object pos and quat
             self.has_object = "object_pos_w" in data
             if self.has_object:
@@ -153,6 +156,52 @@ class MotionLoader:
                 self._object_quat_w = torch.zeros(0, 4, device=device)
                 self._object_lin_vel_w = torch.zeros(0, 3, device=device)
         return body_names, joint_names
+
+    def _set_motion_boundaries(self, data: np.lib.npyio.NpzFile, motion_file: str, device: str) -> None:
+        """Load per-motion frame ranges from an optional fused motion file."""
+        total_frames = int(self._joint_pos.shape[0])
+        if "motion_ends" not in data.files:
+            ends = np.array([total_frames], dtype=np.int64)
+        else:
+            raw_ends = np.asarray(data["motion_ends"])
+            if raw_ends.dtype == np.bool_:
+                if raw_ends.ndim != 1 or raw_ends.shape[0] != total_frames:
+                    raise ValueError(
+                        f"motion_ends bool array in {motion_file} must have shape ({total_frames},), "
+                        f"got {raw_ends.shape}."
+                    )
+                ends = np.flatnonzero(raw_ends).astype(np.int64) + 1
+            else:
+                ends = raw_ends.astype(np.int64).reshape(-1)
+                # Accept inclusive end-frame indices from some tools, but prefer
+                # exclusive end indices in newly generated fused files.
+                if ends.size > 0 and ends[-1] == total_frames - 1:
+                    ends = ends + 1
+
+            if ends.size == 0 or ends[-1] != total_frames:
+                raise ValueError(
+                    f"motion_ends in {motion_file} must end at total frame count {total_frames}, got {ends}."
+                )
+            if np.any(ends <= 0) or np.any(np.diff(ends) <= 0):
+                raise ValueError(f"motion_ends in {motion_file} must be strictly increasing, got {ends}.")
+
+        starts = np.concatenate([[0], ends[:-1]]).astype(np.int64)
+        self._motion_start_idx = torch.tensor(starts, dtype=torch.long, device=device)
+        self._motion_end_idx = torch.tensor(ends, dtype=torch.long, device=device)
+        self._num_motions = int(ends.shape[0])
+
+    def _load_terrain_origins(self, data: np.lib.npyio.NpzFile, motion_file: str, device: str) -> None:
+        if "terrain_origins" not in data.files:
+            self._terrain_origins = None
+            return
+
+        origins_np = np.asarray(data["terrain_origins"], dtype=np.float32)
+        if origins_np.shape != (self._num_motions, 3):
+            raise ValueError(
+                f"terrain_origins in {motion_file} must have shape ({self._num_motions}, 3), "
+                f"got {origins_np.shape}."
+            )
+        self._terrain_origins = torch.tensor(origins_np, dtype=torch.float32, device=device)
 
     @property
     def joint_pos(self) -> torch.Tensor:
@@ -192,18 +241,25 @@ class MotionLoader:
 
     @property
     def num_motions(self) -> int:
-        return 1
+        return self._num_motions
 
     @property
     def motion_start_idx(self) -> torch.Tensor:
-        return torch.tensor([0], dtype=torch.long, device=self._joint_pos.device)
+        return self._motion_start_idx
 
     @property
     def motion_end_idx(self) -> torch.Tensor:
-        return torch.tensor([self.time_step_total], dtype=torch.long, device=self._joint_pos.device)
+        return self._motion_end_idx
+
+    @property
+    def terrain_origins(self) -> torch.Tensor | None:
+        return self._terrain_origins
 
     def extend_with_segments(self, segments: dict[str, torch.Tensor], prepend: bool) -> MotionLoader:
         """Merge interpolated segments with motion data, mutating this MotionLoader."""
+        if self.num_motions != 1:
+            raise RuntimeError("Default-pose transitions are not supported for fused multi-motion files.")
+
         concat_targets = [
             ("joint_pos", "_joint_pos"),
             ("joint_vel", "_joint_vel"),
@@ -227,6 +283,8 @@ class MotionLoader:
             setattr(self, attr_name, torch.cat(tensors, dim=0))
 
         self.time_step_total = self._joint_pos.shape[0]
+        self._motion_start_idx = torch.tensor([0], dtype=torch.long, device=self._joint_pos.device)
+        self._motion_end_idx = torch.tensor([self.time_step_total], dtype=torch.long, device=self._joint_pos.device)
         return self
 
 
@@ -270,12 +328,18 @@ class MultiMotionLoader:
             logger.warning(f"MultiMotionLoader: skipped {skipped} files total due to format issues")
         assert len(loaders) > 0, f"No compatible motion files found (skipped {skipped})"
 
-        # Track per-motion boundaries
-        lengths = [loader.time_step_total for loader in loaders]
-        cumulative = torch.tensor(lengths, dtype=torch.long, device=device).cumsum(dim=0)
-        self._motion_start_idx = torch.cat([torch.tensor([0], dtype=torch.long, device=device), cumulative[:-1]])
-        self._motion_end_idx = cumulative
-        self._num_motions = len(loaders)
+        # Track per-motion boundaries. Each file is usually one motion, but a
+        # fused NPZ can carry multiple motion ranges internally.
+        starts = []
+        ends = []
+        offset = 0
+        for loader in loaders:
+            starts.append(loader.motion_start_idx + offset)
+            ends.append(loader.motion_end_idx + offset)
+            offset += loader.time_step_total
+        self._motion_start_idx = torch.cat(starts, dim=0)
+        self._motion_end_idx = torch.cat(ends, dim=0)
+        self._num_motions = int(self._motion_start_idx.numel())
 
         # Concatenate all motion data
         self._joint_pos = torch.cat([ld._joint_pos for ld in loaders], dim=0)
@@ -302,6 +366,11 @@ class MultiMotionLoader:
             self._object_quat_w = torch.zeros(0, 4, device=device)
             self._object_lin_vel_w = torch.zeros(0, 3, device=device)
 
+        if all(ld.terrain_origins is not None for ld in loaders):
+            self._terrain_origins = torch.cat([ld.terrain_origins for ld in loaders if ld.terrain_origins is not None])
+        else:
+            self._terrain_origins = None
+
         logger.info(f"MultiMotionLoader: {self._num_motions} motions, {self.time_step_total} total frames")
 
     @property
@@ -315,6 +384,10 @@ class MultiMotionLoader:
     @property
     def motion_end_idx(self) -> torch.Tensor:
         return self._motion_end_idx
+
+    @property
+    def terrain_origins(self) -> torch.Tensor | None:
+        return self._terrain_origins
 
     @property
     def joint_pos(self) -> torch.Tensor:
@@ -354,6 +427,9 @@ class MultiMotionLoader:
 
     def extend_with_segments(self, segments: dict[str, torch.Tensor], prepend: bool) -> MultiMotionLoader:
         """Merge interpolated segments with motion data, mutating this MultiMotionLoader."""
+        if self.terrain_origins is not None:
+            raise RuntimeError("Default-pose transitions are not supported for terrain-bound multi-motion files.")
+
         concat_targets = [
             ("joint_pos", "_joint_pos"),
             ("joint_vel", "_joint_vel"),
@@ -678,6 +754,8 @@ class MotionCommand(CommandTermBase):
         # Otherwise, update_tasks_callback will advance the timestep to the next timestep -> out of bounds error.
         already_last_timestep_mask = self.time_steps[env_ids] >= end_idx - 1
         self.time_steps[env_ids] = torch.where(already_last_timestep_mask, end_idx - 2, self.time_steps[env_ids])
+
+        self._sync_env_origins_to_motion(env_ids)
 
         # 1. Get the root/body poses from the motion data
         root_pos = self.root_pos_w[env_ids].clone()
@@ -1039,6 +1117,28 @@ class MotionCommand(CommandTermBase):
 
         if self.motion_cfg.use_adaptive_timesteps_sampler:
             self.adaptive_timesteps_sampler.init_buffers()
+
+    def _sync_env_origins_to_motion(self, env_ids: torch.Tensor) -> None:
+        """Bind env origins to the terrain tile that belongs to each sampled motion."""
+        terrain_origins = self.motion.terrain_origins
+        if terrain_origins is None:
+            return
+
+        motion_ids = self.motion_ids[env_ids]
+        origins = terrain_origins[motion_ids].to(device=self.device, dtype=torch.float32)
+
+        scene_origins = self._env.simulator.scene.env_origins
+        scene_origins[env_ids] = origins.to(device=scene_origins.device, dtype=scene_origins.dtype)
+
+        simulator_origins = getattr(self._env.simulator, "env_origins", None)
+        if simulator_origins is not None:
+            simulator_origins[env_ids] = origins.to(device=simulator_origins.device, dtype=simulator_origins.dtype)
+
+        terrain_state = self._env.terrain_manager.get_state("locomotion_terrain")
+        terrain_state.env_origins[env_ids] = origins.to(
+            device=terrain_state.env_origins.device,
+            dtype=terrain_state.env_origins.dtype,
+        )
 
     def update_metrics(self):
         """Update the metrics. After action, before step() is called."""
