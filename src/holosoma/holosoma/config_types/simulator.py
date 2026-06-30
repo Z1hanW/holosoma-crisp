@@ -477,6 +477,44 @@ class HeightScannerCfg:
 
 
 @dataclass(frozen=True)
+class FootRaycastersCfg:
+    """IsaacLab ray-cast foot sole sampler configuration."""
+
+    enabled: bool = False
+    """Whether to add left/right foot ray-caster sensors."""
+
+    left_sensor_name: str = "left_foot_raycaster"
+    """Name used when registering the left foot ray-caster sensor."""
+
+    right_sensor_name: str = "right_foot_raycaster"
+    """Name used when registering the right foot ray-caster sensor."""
+
+    left_body_name: str = "left_ankle_roll_link"
+    """Robot body to attach the left foot ray-caster to."""
+
+    right_body_name: str = "right_ankle_roll_link"
+    """Robot body to attach the right foot ray-caster to."""
+
+    update_period: float = 0.02
+    """Sensor update period in seconds."""
+
+    offset: list[float] = field(default_factory=lambda: [0.04, 0.0, 0.0])
+    """Ray start offset from the attached foot frame."""
+
+    resolution: float = 0.015
+    """Grid resolution in meters."""
+
+    size: list[float] = field(default_factory=lambda: [0.16, 0.05])
+    """Grid size [x, y] in meters."""
+
+    attach_yaw_only: bool = True
+    """Rotate the foot ray grid by yaw only, matching far-tracking's foothold raycasters."""
+
+    debug_vis: bool = False
+    """Whether to visualize ray hits."""
+
+
+@dataclass(frozen=True)
 class DepthCameraCfg:
     """IsaacLab ray-caster pinhole depth camera configuration."""
 
@@ -647,6 +685,9 @@ class SimulatorInitConfig:
 
     height_scanner: HeightScannerCfg = field(default_factory=HeightScannerCfg)
     """Ray-cast height scanner configuration."""
+
+    foot_raycasters: FootRaycastersCfg = field(default_factory=FootRaycastersCfg)
+    """Ray-cast left/right foot sole samplers used by foothold penalties."""
 
     depth_camera: DepthCameraCfg = field(default_factory=DepthCameraCfg)
     """Ray-cast pinhole depth camera configuration for visual distillation."""

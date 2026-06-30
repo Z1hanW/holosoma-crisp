@@ -59,6 +59,21 @@ g1_29dof_wbt_reward = RewardManagerCfg(
             },
             weight=-0.1,
         ),
+        "zhen_penalty": RewardTermCfg(
+            func="holosoma.managers.reward.terms.wbt:zhen_penalty",
+            params={
+                "raycaster_names": ("left_foot_raycaster", "right_foot_raycaster"),
+                "contact_body_names": ("left_ankle_roll_link", "right_ankle_roll_link"),
+                "foothold_epsilon": 0.1,
+                "contact_force_threshold": 50.0,
+                "sole_offset": 0.0347,
+                "height_scanner_name": "height_scanner",
+                "pelvis_window_half": 0.2,
+                "stair_ruggedness_thresh": 0.1,
+            },
+            weight=0.0,
+            tags=["penalty", "terrain", "foothold"],
+        ),
     }
 )
 

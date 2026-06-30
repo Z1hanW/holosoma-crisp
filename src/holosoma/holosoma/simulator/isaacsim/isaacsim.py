@@ -321,8 +321,10 @@ class IsaacSim(BaseSimulator):
 
         terrain_prim_path = "/World/ground"
         height_scanner_config = None
+        foot_raycaster_configs = []
         depth_camera_config = None
         height_scanner_cfg = getattr(self.simulator_config, "height_scanner", None)
+        foot_raycasters_cfg = getattr(self.simulator_config, "foot_raycasters", None)
         depth_camera_cfg = getattr(self.simulator_config, "depth_camera", None)
         terrain_state = self.terrain_manager.get_state("locomotion_terrain")
         if height_scanner_cfg is not None and height_scanner_cfg.enabled and terrain_state.mesh_type not in ["fake", None]:
@@ -339,6 +341,41 @@ class IsaacSim(BaseSimulator):
                 debug_vis=height_scanner_cfg.debug_vis,
                 mesh_prim_paths=[terrain_prim_path],
             )
+
+        if (
+            foot_raycasters_cfg is not None
+            and foot_raycasters_cfg.enabled
+            and terrain_state.mesh_type not in ["fake", None]
+        ):
+            foot_specs = (
+                (foot_raycasters_cfg.left_sensor_name, foot_raycasters_cfg.left_body_name),
+                (foot_raycasters_cfg.right_sensor_name, foot_raycasters_cfg.right_body_name),
+            )
+            missing_body_names = [body_name for _, body_name in foot_specs if body_name not in self.robot_config.body_names]
+            if missing_body_names:
+                raise ValueError(
+                    "Cannot attach foot raycasters. Missing robot bodies "
+                    f"{missing_body_names}; available bodies: {self.robot_config.body_names}"
+                )
+
+            for sensor_name, body_name in foot_specs:
+                foot_raycaster_configs.append(
+                    (
+                        sensor_name,
+                        RayCasterCfg(
+                            prim_path=f"/World/envs/env_.*/Robot/{body_name}",
+                            update_period=foot_raycasters_cfg.update_period,
+                            offset=RayCasterCfg.OffsetCfg(pos=tuple(foot_raycasters_cfg.offset)),
+                            attach_yaw_only=foot_raycasters_cfg.attach_yaw_only,
+                            pattern_cfg=patterns.GridPatternCfg(
+                                resolution=foot_raycasters_cfg.resolution,
+                                size=tuple(foot_raycasters_cfg.size),
+                            ),
+                            debug_vis=foot_raycasters_cfg.debug_vis,
+                            mesh_prim_paths=[terrain_prim_path],
+                        ),
+                    )
+                )
 
         if depth_camera_cfg is not None and depth_camera_cfg.enabled and terrain_state.mesh_type not in ["fake", None]:
             depth_camera_body_name = self._get_depth_camera_body_name()
@@ -419,6 +456,12 @@ class IsaacSim(BaseSimulator):
         if height_scanner_config:
             self._height_scanner = RayCaster(height_scanner_config)
             self.scene.sensors[height_scanner_cfg.sensor_name] = self._height_scanner
+
+        self._foot_raycasters = {}
+        for sensor_name, foot_raycaster_config in foot_raycaster_configs:
+            foot_raycaster = RayCaster(foot_raycaster_config)
+            self._foot_raycasters[sensor_name] = foot_raycaster
+            self.scene.sensors[sensor_name] = foot_raycaster
 
         if depth_camera_config:
             self._depth_camera = RayCasterCamera(depth_camera_config)

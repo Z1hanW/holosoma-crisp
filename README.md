@@ -134,6 +134,8 @@ cd /home/ubuntu/FAR/holosoma
 
 The script defaults to 8 GPUs with 4096 envs per GPU and checkpoint save interval `1000`. It automatically builds the fused assets when missing, uses `exp:g1-29dof-wbt-height-scan`, and loads the fused OBJ with `num_rows=1` and `num_cols=1`. Those terrain grid overrides are required because the OBJ is already the full fused multi-terrain world; the WBT command handles per-motion origin placement. The multi-terrain script uses PhysX GPU collision stack size `1073741824` by default; the 512MB single-stair setting can overflow on the fused stair mesh and drop contacts.
 
+`zhen_penalty` is an optional far-tracking-style foothold penalty for true physics rollout training. When enabled, IsaacSim/PhysX registers left/right foot RayCaster sensors on the ankle roll links, samples each contacting sole footprint against the loaded static triangle-mesh terrain, and penalizes the fraction of sole rays whose expected sole surface is more than `foothold_epsilon` above the terrain hit. A pelvis height scanner gates the penalty to locally rugged/stair-like terrain, so flat patches do not receive the same foothold penalty. The reward term exists in the G1 WBT reward config with weight `0.0` by default.
+
 For multi-terrain debugging, the script defaults `USE_ADAPTIVE_TIMESTEPS_SAMPLER=False` and adds `noadaptive` to the run name. The original global adaptive timestep sampler bins failures over the concatenated fused motion frame axis. On the 16-motion stair batch this can collapse almost all resets onto one hard global bin, for example W&B run `h5xzojtc` showed sampler entropy near `0.02`, top1 probability around `0.989`, top1 bin around `0.897`, and episode length around `30`. That bin falls inside the later stair clip range, so the policy stops seeing a balanced distribution of terrains. Keep it off until we replace it with a per-motion or motion-balanced adaptive sampler.
 
 ### CSP Depth Student Distillation
@@ -169,6 +171,9 @@ REBUILD_FUSED_ASSETS=1 ./csp_multiterrain_heightmapwbt.sh
 
 # Use 4 GPUs for a smaller debug run.
 NUM_GPUS=4 ENVS_PER_GPU=4096 ./csp_multiterrain_heightmapwbt.sh
+
+# Enable the far-tracking-style foot RayCaster support penalty.
+ENABLE_ZHEN_PENALTY=1 ZHEN_PENALTY_WEIGHT=-10.0 ./csp_multiterrain_heightmapwbt.sh
 
 # Re-enable the old global adaptive sampler only for controlled experiments.
 USE_ADAPTIVE_TIMESTEPS_SAMPLER=True ./csp_multiterrain_heightmapwbt.sh
