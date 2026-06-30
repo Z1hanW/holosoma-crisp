@@ -175,6 +175,10 @@ NUM_GPUS=4 ENVS_PER_GPU=4096 ./csp_multiterrain_heightmapwbt.sh
 # Enable the far-tracking-style foot RayCaster support penalty.
 ENABLE_ZHEN_PENALTY=1 ZHEN_PENALTY_WEIGHT=-10.0 ./csp_multiterrain_heightmapwbt.sh
 
+# Launch the same multi-terrain heightmap + zhen_penalty run on 4 remote nodes
+# with 8 GPUs per node and 4096 envs per GPU.
+./csp_multinode_multiterrain_heightmapwbt.sh
+
 # Re-enable the old global adaptive sampler only for controlled experiments.
 USE_ADAPTIVE_TIMESTEPS_SAMPLER=True ./csp_multiterrain_heightmapwbt.sh
 
@@ -185,6 +189,15 @@ RUN_IN_TMUX=0 ./csp_multiterrain_heightmapwbt.sh --run --training.seed=3
 FUSE_CLIPS="45 3 56_outdoor 78_outdoor_stairs_up_down" \
 REBUILD_FUSED_ASSETS=1 ./csp_multiterrain_heightmapwbt.sh
 ```
+
+The multi-node launcher defaults to these non-local nodes:
+
+```bash
+NODE_HOSTS="10.0.74.86 10.0.100.200 10.0.72.226 10.0.90.122" \
+./csp_multinode_multiterrain_heightmapwbt.sh
+```
+
+It starts one tmux session per node, uses `10.0.74.86` as the default torchrun master, and writes per-node logs as `logs/run_commands/<session>_node<rank>_<host>.log` on each remote node. Override `NODE_HOSTS` to swap in the spare node `10.0.123.134`, and set `KILL_EXISTING=1` if reusing an existing session name intentionally.
 
 Single-stair useful overrides:
 
