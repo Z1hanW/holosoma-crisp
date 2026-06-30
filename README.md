@@ -71,7 +71,7 @@ python src/holosoma/holosoma/train_agent.py \
 
 See the [Training Guide](src/holosoma/README.md) for more examples and configuration options.
 
-### CSP Blind WBT Stair45 Debug Run
+### CSP WBT Stair45 Debug Runs
 
 `csp_blindwbt.sh` launches the no-heightmap stair_45 WBT debug training run that uses the checked-in CRISP stair motion and OBJ terrain:
 
@@ -80,26 +80,38 @@ cd /home/ubuntu/FAR/holosoma
 ./csp_blindwbt.sh
 ```
 
-The default run starts a detached tmux session, logs the shell output under `logs/run_commands/`, and pushes metrics to W&B project `zihanw22/holosomatest`. It uses:
+The heightmap-aware variant uses the same motion and OBJ terrain, but switches to the height-scan experiment:
+
+```bash
+cd /home/ubuntu/FAR/holosoma
+./csp_heightmapwbt.sh
+```
+
+Both scripts start a detached tmux session by default, log shell output under `logs/run_commands/`, and push metrics to W&B project `zihanw22/holosomatest`. They use:
 
 - 8 GPUs with 4096 envs per GPU, for 32768 envs total.
-- `exp:g1-29dof-wbt`, so there is no heightmap or height scanner observation.
 - `crisp_stairs/___crisp_clean_motion/stair_45.npz` as the motion file.
 - `crisp_stairs/___crisp_clean_geometry/stair_45.obj` as the loaded OBJ terrain.
 - PhysX GPU collision stack size `536870912`.
 - Checkpoint save interval `1000`.
+
+The blind script uses `exp:g1-29dof-wbt`, so there is no heightmap or height scanner observation. The heightmap script uses `exp:g1-29dof-wbt-height-scan`, explicitly enables `simulator.config.height_scanner`, and adds the `height_scan` term to actor and critic observations.
 
 Useful overrides:
 
 ```bash
 # Run in the foreground instead of tmux.
 RUN_IN_TMUX=0 ./csp_blindwbt.sh --run
+RUN_IN_TMUX=0 ./csp_heightmapwbt.sh --run
 
 # Change the W&B name, iteration count, or GPU/env layout.
-RUN_NAME=my_debug_run NUM_ITERATIONS=2000 NUM_GPUS=8 ENVS_PER_GPU=4096 ./csp_blindwbt.sh
+RUN_NAME=my_debug_run NUM_ITERATIONS=2000 NUM_GPUS=8 ENVS_PER_GPU=4096 ./csp_heightmapwbt.sh
 
 # Forward extra train_agent.py flags after --run in foreground mode.
-RUN_IN_TMUX=0 ./csp_blindwbt.sh --run --training.seed=3
+RUN_IN_TMUX=0 ./csp_heightmapwbt.sh --run --training.seed=3
+
+# Adjust the height scanner ray grid resolution.
+HEIGHT_SCANNER_RESOLUTION=0.08 ./csp_heightmapwbt.sh
 ```
 
 ### Quick Demo
