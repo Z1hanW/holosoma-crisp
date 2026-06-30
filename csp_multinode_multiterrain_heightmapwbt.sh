@@ -87,7 +87,8 @@ ZHEN_PENALTY_SOLE_OFFSET="${ZHEN_PENALTY_SOLE_OFFSET:-0.0347}"
 ZHEN_PENALTY_PELVIS_WINDOW_HALF="${ZHEN_PENALTY_PELVIS_WINDOW_HALF:-0.2}"
 ZHEN_PENALTY_STAIR_RUGGEDNESS_THRESH="${ZHEN_PENALTY_STAIR_RUGGEDNESS_THRESH:-0.1}"
 USE_ADAPTIVE_TIMESTEPS_SAMPLER="${USE_ADAPTIVE_TIMESTEPS_SAMPLER:-False}"
-REMOTE_REPO="${REMOTE_REPO:-/home/ubuntu/FAR/holosoma}"
+REMOTE_REPO="${REMOTE_REPO:-/home/ubuntu/FAR/holosoma_crisp}"
+REMOTE_GIT_URL="${REMOTE_GIT_URL:-https://github.com/Z1hanW/holosoma-crisp.git}"
 SYNC_REPO="${SYNC_REPO:-1}"
 KILL_EXISTING="${KILL_EXISTING:-0}"
 
@@ -121,7 +122,8 @@ if [[ "${1:-}" == "--node-run" ]]; then
     exit 1
   fi
 
-  source ~/miniconda3/etc/profile.d/conda.sh 2>/dev/null \
+  source /home/ubuntu/.holosoma_deps/miniconda3/etc/profile.d/conda.sh 2>/dev/null \
+    || source ~/miniconda3/etc/profile.d/conda.sh 2>/dev/null \
     || source /opt/conda/etc/profile.d/conda.sh 2>/dev/null \
     || source /home/ubuntu/.holosoma_deps/miniconda3/etc/profile.d/conda.sh
 
@@ -198,8 +200,9 @@ for node_rank in "${!NODE_HOST_ARRAY[@]}"; do
   remote_log="${REMOTE_REPO}/${LOG_DIR}/${SESSION}_node${node_rank}_${host//./-}.log"
 
   if [[ "${SYNC_REPO}" == "1" ]]; then
+    remote_parent="$(dirname "${REMOTE_REPO}")"
     ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o ConnectTimeout=10 "${host}" \
-      "cd $(quote "${REMOTE_REPO}") && git fetch origin main && git merge --ff-only origin/main"
+      "if [[ ! -d $(quote "${REMOTE_REPO}/.git") ]]; then mkdir -p $(quote "${remote_parent}") && git clone $(quote "${REMOTE_GIT_URL}") $(quote "${REMOTE_REPO}"); fi && cd $(quote "${REMOTE_REPO}") && git fetch $(quote "${REMOTE_GIT_URL}") main && git merge --ff-only FETCH_HEAD"
   fi
 
   if ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o ConnectTimeout=10 "${host}" \
@@ -213,7 +216,7 @@ for node_rank in "${!NODE_HOST_ARRAY[@]}"; do
     fi
   fi
 
-  remote_env="NODE_RANK=$(quote "${node_rank}") NNODES=$(quote "${NNODES}") GPUS_PER_NODE=$(quote "${GPUS_PER_NODE}") ENVS_PER_GPU=$(quote "${ENVS_PER_GPU}") TOTAL_GPUS=$(quote "${TOTAL_GPUS}") TOTAL_ENVS=$(quote "${TOTAL_ENVS}") MASTER_ADDR=$(quote "${MASTER_ADDR}") MASTER_PORT=$(quote "${MASTER_PORT}") TIMESTAMP=$(quote "${TIMESTAMP}") HOSTNAME_SHORT=$(quote "${HOSTNAME_SHORT}") WANDB_ENTITY=$(quote "${WANDB_ENTITY}") WANDB_PROJECT=$(quote "${WANDB_PROJECT}") NUM_ITERATIONS=$(quote "${NUM_ITERATIONS}") SAVE_INTERVAL=$(quote "${SAVE_INTERVAL}") PHYSX_GPU_COLLISION_STACK_SIZE=$(quote "${PHYSX_GPU_COLLISION_STACK_SIZE}") PHYSX_STACK_LABEL=$(quote "${PHYSX_STACK_LABEL}") HEIGHT_SCANNER_BODY_NAME=$(quote "${HEIGHT_SCANNER_BODY_NAME}") HEIGHT_SCANNER_RESOLUTION=$(quote "${HEIGHT_SCANNER_RESOLUTION}") HEIGHT_SCANNER_DEBUG_VIS=$(quote "${HEIGHT_SCANNER_DEBUG_VIS}") FOOT_RAYCASTERS_DEBUG_VIS=$(quote "${FOOT_RAYCASTERS_DEBUG_VIS}") ENABLE_ZHEN_PENALTY=$(quote "${ENABLE_ZHEN_PENALTY}") ZHEN_PENALTY_WEIGHT=$(quote "${ZHEN_PENALTY_WEIGHT}") ZHEN_PENALTY_CONTACT_FORCE_THRESHOLD=$(quote "${ZHEN_PENALTY_CONTACT_FORCE_THRESHOLD}") ZHEN_PENALTY_FOOTHOLD_EPSILON=$(quote "${ZHEN_PENALTY_FOOTHOLD_EPSILON}") ZHEN_PENALTY_SOLE_OFFSET=$(quote "${ZHEN_PENALTY_SOLE_OFFSET}") ZHEN_PENALTY_PELVIS_WINDOW_HALF=$(quote "${ZHEN_PENALTY_PELVIS_WINDOW_HALF}") ZHEN_PENALTY_STAIR_RUGGEDNESS_THRESH=$(quote "${ZHEN_PENALTY_STAIR_RUGGEDNESS_THRESH}") USE_ADAPTIVE_TIMESTEPS_SAMPLER=$(quote "${USE_ADAPTIVE_TIMESTEPS_SAMPLER}") REMOTE_REPO=$(quote "${REMOTE_REPO}") CRISP_ROOT=$(quote "${CRISP_ROOT}") FUSED_DIR=$(quote "${FUSED_DIR}") FUSED_PREFIX=$(quote "${FUSED_PREFIX}") FUSE_SCRIPT=$(quote "${FUSE_SCRIPT}") FUSE_CLIPS=$(quote "${FUSE_CLIPS}") BUILD_FUSED_ASSETS=$(quote "${BUILD_FUSED_ASSETS}") REBUILD_FUSED_ASSETS=$(quote "${REBUILD_FUSED_ASSETS}") MOTION_FILE=$(quote "${MOTION_FILE}") TERRAIN_OBJ=$(quote "${TERRAIN_OBJ}") RUN_NAME=$(quote "${RUN_NAME}") SESSION=$(quote "${SESSION}") LOG_DIR=$(quote "${LOG_DIR}")"
+  remote_env="NODE_RANK=$(quote "${node_rank}") NNODES=$(quote "${NNODES}") GPUS_PER_NODE=$(quote "${GPUS_PER_NODE}") ENVS_PER_GPU=$(quote "${ENVS_PER_GPU}") TOTAL_GPUS=$(quote "${TOTAL_GPUS}") TOTAL_ENVS=$(quote "${TOTAL_ENVS}") MASTER_ADDR=$(quote "${MASTER_ADDR}") MASTER_PORT=$(quote "${MASTER_PORT}") TIMESTAMP=$(quote "${TIMESTAMP}") HOSTNAME_SHORT=$(quote "${HOSTNAME_SHORT}") WANDB_ENTITY=$(quote "${WANDB_ENTITY}") WANDB_PROJECT=$(quote "${WANDB_PROJECT}") NUM_ITERATIONS=$(quote "${NUM_ITERATIONS}") SAVE_INTERVAL=$(quote "${SAVE_INTERVAL}") PHYSX_GPU_COLLISION_STACK_SIZE=$(quote "${PHYSX_GPU_COLLISION_STACK_SIZE}") PHYSX_STACK_LABEL=$(quote "${PHYSX_STACK_LABEL}") HEIGHT_SCANNER_BODY_NAME=$(quote "${HEIGHT_SCANNER_BODY_NAME}") HEIGHT_SCANNER_RESOLUTION=$(quote "${HEIGHT_SCANNER_RESOLUTION}") HEIGHT_SCANNER_DEBUG_VIS=$(quote "${HEIGHT_SCANNER_DEBUG_VIS}") FOOT_RAYCASTERS_DEBUG_VIS=$(quote "${FOOT_RAYCASTERS_DEBUG_VIS}") ENABLE_ZHEN_PENALTY=$(quote "${ENABLE_ZHEN_PENALTY}") ZHEN_PENALTY_WEIGHT=$(quote "${ZHEN_PENALTY_WEIGHT}") ZHEN_PENALTY_CONTACT_FORCE_THRESHOLD=$(quote "${ZHEN_PENALTY_CONTACT_FORCE_THRESHOLD}") ZHEN_PENALTY_FOOTHOLD_EPSILON=$(quote "${ZHEN_PENALTY_FOOTHOLD_EPSILON}") ZHEN_PENALTY_SOLE_OFFSET=$(quote "${ZHEN_PENALTY_SOLE_OFFSET}") ZHEN_PENALTY_PELVIS_WINDOW_HALF=$(quote "${ZHEN_PENALTY_PELVIS_WINDOW_HALF}") ZHEN_PENALTY_STAIR_RUGGEDNESS_THRESH=$(quote "${ZHEN_PENALTY_STAIR_RUGGEDNESS_THRESH}") USE_ADAPTIVE_TIMESTEPS_SAMPLER=$(quote "${USE_ADAPTIVE_TIMESTEPS_SAMPLER}") REMOTE_REPO=$(quote "${REMOTE_REPO}") REMOTE_GIT_URL=$(quote "${REMOTE_GIT_URL}") CRISP_ROOT=$(quote "${CRISP_ROOT}") FUSED_DIR=$(quote "${FUSED_DIR}") FUSED_PREFIX=$(quote "${FUSED_PREFIX}") FUSE_SCRIPT=$(quote "${FUSE_SCRIPT}") FUSE_CLIPS=$(quote "${FUSE_CLIPS}") BUILD_FUSED_ASSETS=$(quote "${BUILD_FUSED_ASSETS}") REBUILD_FUSED_ASSETS=$(quote "${REBUILD_FUSED_ASSETS}") MOTION_FILE=$(quote "${MOTION_FILE}") TERRAIN_OBJ=$(quote "${TERRAIN_OBJ}") RUN_NAME=$(quote "${RUN_NAME}") SESSION=$(quote "${SESSION}") LOG_DIR=$(quote "${LOG_DIR}")"
 
   remote_cmd="cd $(quote "${REMOTE_REPO}") && mkdir -p $(quote "${LOG_DIR}") && env ${remote_env} bash $(quote "${REMOTE_REPO}/${SCRIPT_BASENAME}") --node-run > $(quote "${remote_log}") 2>&1"
   ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o ConnectTimeout=10 "${host}" \

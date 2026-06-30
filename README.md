@@ -197,7 +197,7 @@ NODE_HOSTS="10.0.74.86 10.0.100.200 10.0.72.226 10.0.90.122" \
 ./csp_multinode_multiterrain_heightmapwbt.sh
 ```
 
-It starts one tmux session per node, uses `10.0.74.86` as the default torchrun master, and writes per-node logs as `logs/run_commands/<session>_node<rank>_<host>.log` on each remote node. Override `NODE_HOSTS` to swap in the spare node `10.0.123.134`, and set `KILL_EXISTING=1` if reusing an existing session name intentionally.
+It starts one tmux session per node, uses `10.0.74.86` as the default torchrun master, and writes per-node logs as `logs/run_commands/<session>_node<rank>_<host>.log` on each remote node. By default it clones/syncs `https://github.com/Z1hanW/holosoma-crisp.git` into `/home/ubuntu/FAR/holosoma_crisp` so it does not touch any existing remote checkout at `/home/ubuntu/FAR/holosoma`. Override `NODE_HOSTS` to swap in the spare node `10.0.123.134`, and set `KILL_EXISTING=1` if reusing an existing session name intentionally.
 
 Single-stair useful overrides:
 
