@@ -130,6 +130,7 @@ if [[ "${1:-}" == "--node-run" ]]; then
   conda activate "${CONDA_ENV_NAME:-hssim}"
   source scripts/source_isaacsim_setup.sh
 
+  export PYTHONPATH="${REMOTE_REPO}/src/holosoma:${PYTHONPATH:-}"
   export LOGURU_LEVEL="${LOGURU_LEVEL:-INFO}"
 
   ZHEN_ARGS=()
