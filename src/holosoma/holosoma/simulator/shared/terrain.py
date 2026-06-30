@@ -89,7 +89,42 @@ class Terrain(TerrainInterface):
                 tile.apply_translation([c * stride[0], r * stride[1], 0.0])
                 tiles.append(tile)
 
-        return trimesh.util.concatenate(tiles)
+        mesh = trimesh.util.concatenate(tiles)
+        if self._cfg.load_obj_add_floor:
+            mesh = trimesh.util.concatenate([mesh, self._make_load_obj_floor(mesh.bounds)])
+        return mesh
+
+    def _make_load_obj_floor(self, bounds: np.ndarray) -> trimesh.Trimesh:
+        """Create a flat floor patch under a loaded OBJ terrain.
+
+        This mirrors the FAR tracking terrain convention where obstacle meshes
+        are combined with a floor patch, ensuring height-scanner rays always
+        hit terrain even just before or beside finite obstacle geometry.
+        """
+        min_corner, max_corner = bounds.astype(np.float64)
+        margin = max(float(self._cfg.load_obj_floor_margin), 0.0)
+        thickness = max(float(self._cfg.load_obj_floor_thickness), 1e-4)
+        top_z = float(self._cfg.load_obj_floor_top_z)
+
+        extents = np.array(
+            [
+                max_corner[0] - min_corner[0] + 2.0 * margin,
+                max_corner[1] - min_corner[1] + 2.0 * margin,
+                thickness,
+            ],
+            dtype=np.float64,
+        )
+        center = np.array(
+            [
+                0.5 * (min_corner[0] + max_corner[0]),
+                0.5 * (min_corner[1] + max_corner[1]),
+                top_z - 0.5 * thickness,
+            ],
+            dtype=np.float64,
+        )
+        transform = np.eye(4, dtype=np.float64)
+        transform[:3, 3] = center
+        return trimesh.creation.box(extents=extents, transform=transform)
 
     def _initialize_terrain_config(self) -> trimesh.Trimesh:
         terrain_config = self._cfg.terrain_config

@@ -199,6 +199,18 @@ class TerrainTermCfg:
     obj_file_path: str = ""
     """Path to OBJ file for custom terrain mesh."""
 
+    load_obj_add_floor: bool = False
+    """Add a flat floor patch under loaded OBJ terrain so ray-cast height scans do not miss finite meshes."""
+
+    load_obj_floor_margin: float = 2.0
+    """Extra XY margin in meters around the loaded OBJ mesh when load_obj_add_floor is enabled."""
+
+    load_obj_floor_top_z: float = 0.0
+    """World Z height of the added floor patch top surface."""
+
+    load_obj_floor_thickness: float = 0.1
+    """Thickness in meters of the added floor patch."""
+
     scale_factor: float = 1.0
     """Use for performance to scale border_size, terrain_length, terrain_width, num_ros and num_cols."""
 

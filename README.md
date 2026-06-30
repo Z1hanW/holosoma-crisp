@@ -89,13 +89,23 @@ cd /home/ubuntu/FAR/holosoma
 
 Both scripts start a detached tmux session by default, log shell output under `logs/run_commands/`, and push metrics to W&B project `zihanw22/holosomatest`. They use:
 
-- 8 GPUs with 4096 envs per GPU, for 32768 envs total.
+- 8 GPUs with 4096 envs per GPU by default, for 32768 envs total.
 - `crisp_stairs/___crisp_clean_motion/stair_45.npz` as the motion file.
 - `crisp_stairs/___crisp_clean_geometry/stair_45.obj` as the loaded OBJ terrain.
 - PhysX GPU collision stack size `536870912`.
 - Checkpoint save interval `1000`.
 
 The blind script uses `exp:g1-29dof-wbt`, so there is no heightmap or height scanner observation. The heightmap script uses `exp:g1-29dof-wbt-height-scan`, explicitly enables `simulator.config.height_scanner`, and adds the `height_scan` term to actor and critic observations.
+
+For the current 4-GPU stair45 heightmap debugging run:
+
+```bash
+NUM_GPUS=4 ENVS_PER_GPU=4096 ./csp_heightmapwbt.sh
+```
+
+The heightmap script also enables a flat floor patch under the loaded OBJ terrain, matching the far-tracking obstacle-plus-floor convention. This keeps pelvis-mounted RayCaster height scans from missing finite OBJ terrain before or beside the stairs. The default margin is 2m and can be changed with `LOAD_OBJ_FLOOR_MARGIN`.
+
+Multi-GPU height-scan training relies on empirical observation normalization. The distributed variance path clamps variance to be non-negative before `sqrt()` because height scans contain many near-constant values and `E[x^2] - E[x]^2` can produce tiny negative values in float32; without that clamp the actor distribution can receive NaNs before the first rollout.
 
 Useful overrides:
 
@@ -112,6 +122,9 @@ RUN_IN_TMUX=0 ./csp_heightmapwbt.sh --run --training.seed=3
 
 # Adjust the height scanner ray grid resolution.
 HEIGHT_SCANNER_RESOLUTION=0.08 ./csp_heightmapwbt.sh
+
+# Adjust the loaded OBJ floor patch used by heightmap training.
+LOAD_OBJ_FLOOR_MARGIN=3.0 ./csp_heightmapwbt.sh
 ```
 
 ### Quick Demo

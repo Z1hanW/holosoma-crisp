@@ -118,11 +118,22 @@ def actions(env: WholeBodyTrackingManager) -> torch.Tensor:
     return env.action_manager.action
 
 
-def height_scan(env: WholeBodyTrackingManager, sensor_name: str = "height_scanner", offset: float = 0.5) -> torch.Tensor:
+def height_scan(
+    env: WholeBodyTrackingManager,
+    sensor_name: str = "height_scanner",
+    offset: float = 0.5,
+    miss_value: float = 0.0,
+    clip_min: float = -100.0,
+    clip_max: float = 100.0,
+) -> torch.Tensor:
     """Height scan from an IsaacLab RayCaster sensor.
 
     Matches IsaacLab's height_scan convention:
     sensor_world_z - terrain_hit_world_z - offset.
+
+    RayCaster returns non-finite hit positions for rays that miss finite meshes.
+    Loaded OBJ terrains are finite, so sanitize misses before empirical
+    normalization sees them.
     """
     sensors = getattr(getattr(env.simulator, "scene", None), "sensors", {})
     if sensor_name not in sensors:
@@ -132,7 +143,9 @@ def height_scan(env: WholeBodyTrackingManager, sensor_name: str = "height_scanne
         )
 
     sensor = sensors[sensor_name]
-    return sensor.data.pos_w[:, 2].unsqueeze(1) - sensor.data.ray_hits_w[..., 2] - offset
+    heights = sensor.data.pos_w[:, 2].unsqueeze(1) - sensor.data.ray_hits_w[..., 2] - offset
+    heights = torch.nan_to_num(heights, nan=miss_value, posinf=miss_value, neginf=miss_value)
+    return heights.clamp(min=clip_min, max=clip_max)
 
 
 #########################################################################################################

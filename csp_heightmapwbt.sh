@@ -50,6 +50,7 @@ PHYSX_GPU_COLLISION_STACK_SIZE="${PHYSX_GPU_COLLISION_STACK_SIZE:-536870912}"
 HEIGHT_SCANNER_BODY_NAME="${HEIGHT_SCANNER_BODY_NAME:-pelvis}"
 HEIGHT_SCANNER_RESOLUTION="${HEIGHT_SCANNER_RESOLUTION:-0.1}"
 HEIGHT_SCANNER_DEBUG_VIS="${HEIGHT_SCANNER_DEBUG_VIS:-False}"
+LOAD_OBJ_FLOOR_MARGIN="${LOAD_OBJ_FLOOR_MARGIN:-2.0}"
 
 MOTION_FILE="${MOTION_FILE:-${SCRIPT_DIR}/crisp_stairs/___crisp_clean_motion/stair_45.npz}"
 TERRAIN_OBJ="${TERRAIN_OBJ:-${SCRIPT_DIR}/crisp_stairs/___crisp_clean_geometry/stair_45.obj}"
@@ -73,7 +74,7 @@ if [[ "${1:-}" != "--run" && "${RUN_IN_TMUX:-1}" == "1" ]]; then
   mkdir -p "${LOG_DIR}"
   printf "%s\n" "${RUN_NAME}" > "${LOG_DIR}/${SESSION}.run_name"
 
-  TMUX_CMD="cd $(quote "${SCRIPT_DIR}") && env RUN_IN_TMUX=0 TIMESTAMP=$(quote "${TIMESTAMP}") HOSTNAME_SHORT=$(quote "${HOSTNAME_SHORT}") WANDB_ENTITY=$(quote "${WANDB_ENTITY}") WANDB_PROJECT=$(quote "${WANDB_PROJECT}") NUM_GPUS=$(quote "${NUM_GPUS}") ENVS_PER_GPU=$(quote "${ENVS_PER_GPU}") TOTAL_ENVS=$(quote "${TOTAL_ENVS}") NUM_ITERATIONS=$(quote "${NUM_ITERATIONS}") SAVE_INTERVAL=$(quote "${SAVE_INTERVAL}") PHYSX_GPU_COLLISION_STACK_SIZE=$(quote "${PHYSX_GPU_COLLISION_STACK_SIZE}") HEIGHT_SCANNER_BODY_NAME=$(quote "${HEIGHT_SCANNER_BODY_NAME}") HEIGHT_SCANNER_RESOLUTION=$(quote "${HEIGHT_SCANNER_RESOLUTION}") HEIGHT_SCANNER_DEBUG_VIS=$(quote "${HEIGHT_SCANNER_DEBUG_VIS}") MOTION_FILE=$(quote "${MOTION_FILE}") TERRAIN_OBJ=$(quote "${TERRAIN_OBJ}") RUN_NAME=$(quote "${RUN_NAME}") SESSION=$(quote "${SESSION}") LOG_DIR=$(quote "${LOG_DIR}") LOG_FILE=$(quote "${LOG_FILE}") MASTER_PORT=$(quote "${MASTER_PORT}") bash $(quote "${SCRIPT_DIR}/csp_heightmapwbt.sh") --run > $(quote "${LOG_FILE}") 2>&1"
+  TMUX_CMD="cd $(quote "${SCRIPT_DIR}") && env RUN_IN_TMUX=0 TIMESTAMP=$(quote "${TIMESTAMP}") HOSTNAME_SHORT=$(quote "${HOSTNAME_SHORT}") WANDB_ENTITY=$(quote "${WANDB_ENTITY}") WANDB_PROJECT=$(quote "${WANDB_PROJECT}") NUM_GPUS=$(quote "${NUM_GPUS}") ENVS_PER_GPU=$(quote "${ENVS_PER_GPU}") TOTAL_ENVS=$(quote "${TOTAL_ENVS}") NUM_ITERATIONS=$(quote "${NUM_ITERATIONS}") SAVE_INTERVAL=$(quote "${SAVE_INTERVAL}") PHYSX_GPU_COLLISION_STACK_SIZE=$(quote "${PHYSX_GPU_COLLISION_STACK_SIZE}") HEIGHT_SCANNER_BODY_NAME=$(quote "${HEIGHT_SCANNER_BODY_NAME}") HEIGHT_SCANNER_RESOLUTION=$(quote "${HEIGHT_SCANNER_RESOLUTION}") HEIGHT_SCANNER_DEBUG_VIS=$(quote "${HEIGHT_SCANNER_DEBUG_VIS}") LOAD_OBJ_FLOOR_MARGIN=$(quote "${LOAD_OBJ_FLOOR_MARGIN}") MOTION_FILE=$(quote "${MOTION_FILE}") TERRAIN_OBJ=$(quote "${TERRAIN_OBJ}") RUN_NAME=$(quote "${RUN_NAME}") SESSION=$(quote "${SESSION}") LOG_DIR=$(quote "${LOG_DIR}") LOG_FILE=$(quote "${LOG_FILE}") MASTER_PORT=$(quote "${MASTER_PORT}") bash $(quote "${SCRIPT_DIR}/csp_heightmapwbt.sh") --run > $(quote "${LOG_FILE}") 2>&1"
 
   tmux new-session -d -s "${SESSION}" "${TMUX_CMD}"
   echo "Started CSP heightmap-aware WBT training."
@@ -84,6 +85,7 @@ if [[ "${1:-}" != "--run" && "${RUN_IN_TMUX:-1}" == "1" ]]; then
   echo "  total_envs: ${TOTAL_ENVS} (${NUM_GPUS} x ${ENVS_PER_GPU})"
   echo "  height_scanner_body: ${HEIGHT_SCANNER_BODY_NAME}"
   echo "  height_scanner_resolution: ${HEIGHT_SCANNER_RESOLUTION}"
+  echo "  load_obj_floor_margin: ${LOAD_OBJ_FLOOR_MARGIN}"
   exit 0
 fi
 
@@ -116,6 +118,8 @@ torchrun \
   --logger.name="${RUN_NAME}" \
   --logger.video.enabled=False \
   --terrain.terrain-term.obj-file-path="${TERRAIN_OBJ}" \
+  --terrain.terrain-term.load-obj-add-floor=True \
+  --terrain.terrain-term.load-obj-floor-margin="${LOAD_OBJ_FLOOR_MARGIN}" \
   --command.setup_terms.motion_command.params.motion_config.motion_file="${MOTION_FILE}" \
   --simulator.config.scene.env-spacing=0.0 \
   --simulator.config.height-scanner.enabled=True \
