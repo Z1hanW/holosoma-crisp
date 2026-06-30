@@ -190,14 +190,71 @@ FUSE_CLIPS="45 3 56_outdoor 78_outdoor_stairs_up_down" \
 REBUILD_FUSED_ASSETS=1 ./csp_multiterrain_heightmapwbt.sh
 ```
 
-The multi-node launcher defaults to these non-local nodes:
+#### Validated 32-GPU Multi-Node Tracking Run
+
+Use the multi-node launcher for the heightmap-aware multi-terrain WBT run with `zhen_penalty` enabled. The validated topology deliberately excludes the local node `10.0.73.59` and uses four remote `g6e.48xlarge` nodes:
 
 ```bash
 NODE_HOSTS="10.0.74.86 10.0.100.200 10.0.72.226 10.0.90.122" \
 ./csp_multinode_multiterrain_heightmapwbt.sh
 ```
 
-It starts one tmux session per node, uses `10.0.74.86` as the default torchrun master, and writes per-node logs as `logs/run_commands/<session>_node<rank>_<host>.log` on each remote node. By default it clones/syncs `https://github.com/Z1hanW/holosoma-crisp.git` into `/home/ubuntu/FAR/holosoma_crisp` so it does not touch any existing remote checkout at `/home/ubuntu/FAR/holosoma`. Override `NODE_HOSTS` to swap in the spare node `10.0.123.134`, and set `KILL_EXISTING=1` if reusing an existing session name intentionally.
+This runs:
+
+- `4` nodes x `8` GPUs/node x `4096` envs/GPU = `131072` total envs.
+- `exp:g1-29dof-wbt-height-scan` against the fused multi-terrain OBJ.
+- `ENABLE_ZHEN_PENALTY=1` and `ZHEN_PENALTY_WEIGHT=-10.0` by default.
+- `USE_ADAPTIVE_TIMESTEPS_SAMPLER=False` by default.
+- checkpoint save interval `1000`.
+
+The launcher starts one tmux session per node, uses `10.0.74.86` as the default torchrun master, and writes per-node logs as `logs/run_commands/<session>_node<rank>_<host>.log` on each remote node. Override `NODE_HOSTS` to swap in the spare node `10.0.123.134`, and set `KILL_EXISTING=1` if reusing an existing session name intentionally.
+
+Two details are important for the remote nodes:
+
+- Do not reuse `/home/ubuntu/FAR/holosoma` on the remote machines for this run. On the validated cluster that checkout points at `https://github.com/Z1hanW/holosoma`, not `holosoma-crisp`, so it can silently run the wrong code.
+- The launcher clones/syncs `https://github.com/Z1hanW/holosoma-crisp.git` into `/home/ubuntu/FAR/holosoma_crisp`, sources conda from `/home/ubuntu/.holosoma_deps/miniconda3`, and exports `PYTHONPATH=/home/ubuntu/FAR/holosoma_crisp/src/holosoma:$PYTHONPATH` before `torchrun`. This forces Python to import the isolated `holosoma-crisp` checkout even if the `hssim` conda env has an old editable install.
+
+The validated W&B run for this setup was:
+
+```text
+https://wandb.ai/zihanw22/holosomatest/runs/btoe97gr
+```
+
+Use these checks after launch:
+
+```bash
+# On the master node, check the run is advancing and zhen_penalty is logged.
+ssh 10.0.74.86 \
+  'grep -nE "Learning iteration|rew_zhen_penalty|raw_rew_zhen_penalty" \
+  /home/ubuntu/FAR/holosoma_crisp/logs/run_commands/csp_multinode_heightmapwbt_20260630_170601_node0_10-0-74-86.log | tail -n 30'
+
+# Check all four tmux sessions and GPU utilization.
+for h in 10.0.74.86 10.0.100.200 10.0.72.226 10.0.90.122; do
+  echo "== $h =="
+  ssh "$h" \
+    'tmux ls | grep csp_multinode_heightmapwbt || true; \
+     nvidia-smi --query-gpu=index,memory.used,utilization.gpu --format=csv,noheader,nounits | head -n 8'
+done
+
+# Confirm the remote import path is the isolated checkout.
+for h in 10.0.74.86 10.0.100.200 10.0.72.226 10.0.90.122; do
+  echo "== $h =="
+  ssh "$h" \
+    'cd /home/ubuntu/FAR/holosoma_crisp && git rev-parse --short HEAD; \
+     source /home/ubuntu/.holosoma_deps/miniconda3/etc/profile.d/conda.sh; \
+     conda activate hssim; \
+     PYTHONPATH=/home/ubuntu/FAR/holosoma_crisp/src/holosoma:$PYTHONPATH python -c "import holosoma; print(holosoma.__file__)"'
+done
+```
+
+Stop a multi-node run cleanly:
+
+```bash
+SESSION=csp_multinode_heightmapwbt_YYYYMMDD_HHMMSS
+for h in 10.0.74.86 10.0.100.200 10.0.72.226 10.0.90.122; do
+  ssh "$h" "tmux send-keys -t ${SESSION} C-c 2>/dev/null || true; sleep 2; tmux kill-session -t ${SESSION} 2>/dev/null || true"
+done
+```
 
 Single-stair useful overrides:
 
