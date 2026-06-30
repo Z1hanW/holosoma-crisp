@@ -32,6 +32,8 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--env-id", type=int, default=0, help="Environment index to stream.")
     parser.add_argument("--max-steps", type=int, default=0, help="0 means run until stopped.")
     parser.add_argument("--update-hz", type=float, default=30.0, help="Viser publish rate.")
+    parser.add_argument("--red-points", action=argparse.BooleanOptionalAction, default=False)
+    parser.add_argument("--red-point-size", type=float, default=0.035)
     parser.add_argument("--headless", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--randomize-tiles", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--xy-offset-range", type=float, default=1.0)
@@ -147,6 +149,20 @@ def _tensor_row_to_numpy(value: Any, env_id: int) -> np.ndarray:
     return value[env_id].detach().cpu().numpy()
 
 
+def _red_point_hits(env: Any, env_id: int) -> np.ndarray:
+    """Return finite height-scan/raycast hit points for one env."""
+    sensors = getattr(getattr(env.simulator, "scene", None), "sensors", {})
+    sensor = sensors.get("height_scanner")
+    if sensor is not None and hasattr(sensor, "data") and hasattr(sensor.data, "ray_hits_w"):
+        points = sensor.data.ray_hits_w[env_id].detach().cpu().numpy()
+    else:
+        terrain_state = env.terrain_manager.get_state("locomotion_terrain")
+        points = terrain_state._ray_hits_world_base[env_id].detach().cpu().numpy()
+
+    points = np.asarray(points, dtype=np.float32).reshape(-1, 3)
+    return points[np.isfinite(points).all(axis=1)]
+
+
 def main() -> None:
     args = _parse_args()
     init_eval_logging()
@@ -202,11 +218,12 @@ def main() -> None:
 
         logger.info("Viser listening on http://localhost:{}", args.port)
         logger.info(
-            "Streaming env {} from true IsaacSim physics; randomize_tiles={} xy_offset_range={} randomization_disabled={}",
+            "Streaming env {} from true IsaacSim physics; randomize_tiles={} xy_offset_range={} randomization_disabled={} red_points={}",
             args.env_id,
             args.randomize_tiles,
             args.xy_offset_range,
             args.disable_randomization,
+            args.red_points,
         )
 
         algo._create_eval_callbacks()
@@ -215,6 +232,18 @@ def main() -> None:
         algo.eval_policy = algo.get_inference_policy()
 
         obs_dict = env.reset_all()
+        red_points_handle = None
+        if args.red_points:
+            red_points = _red_point_hits(env, int(args.env_id))
+            red_points_handle = server.scene.add_point_cloud(
+                "/height_scan_red_points",
+                red_points,
+                colors=(255, 0, 0),
+                point_size=float(args.red_point_size),
+                point_shape="circle",
+                point_shading="flat",
+                precision="float32",
+            )
         init_actions = torch.zeros(env.num_envs, algo.num_act, device=device)
         actor_state.update({"obs": obs_dict, "actions": init_actions})
         critic_obs = torch.cat([actor_state["obs"][key] for key in algo.critic_obs_keys], dim=1)
@@ -240,6 +269,8 @@ def main() -> None:
                     robot_root.position = root_state[:3].astype(np.float32)
                     robot_root.wxyz = _xyzw_to_wxyz(root_state[3:7])
                     robot_viser.update_cfg(dof_pos.astype(np.float32))
+                    if red_points_handle is not None:
+                        red_points_handle.points = _red_point_hits(env, int(args.env_id))
                     last_publish = now
 
                 if args.log_every > 0 and step % int(args.log_every) == 0:
