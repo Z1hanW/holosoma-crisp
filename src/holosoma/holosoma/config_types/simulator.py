@@ -90,6 +90,12 @@ class PhysxConfig:
     bounce_threshold_velocity: float = 0.5
     """Velocity threshold below which bounce responses are suppressed."""
 
+    gpu_max_rigid_patch_count: int = 10 * 2**15
+    """Maximum rigid contact patches allocated for GPU PhysX."""
+
+    gpu_collision_stack_size: int = 2**26
+    """GPU collision stack size in bytes for PhysX narrowphase contact generation."""
+
 
 @dataclass(frozen=True)
 class MujocoXMLFilterCfg:
@@ -434,6 +440,43 @@ class VirtualGantryCfg:
 
 
 @dataclass(frozen=True)
+class HeightScannerCfg:
+    """IsaacLab ray-cast height scanner configuration."""
+
+    enabled: bool = False
+    """Whether to add a ray-cast height scanner sensor."""
+
+    sensor_name: str = "height_scanner"
+    """Name used when registering the sensor in the IsaacLab scene."""
+
+    body_name: str | None = "pelvis"
+    """Robot body to attach the scanner to. If None, fallback_body_names is used."""
+
+    fallback_body_names: list[str] = field(
+        default_factory=lambda: ["pelvis", "torso_link", "torso", "base_link", "base"]
+    )
+    """Fallback body names used when body_name is None."""
+
+    update_period: float = 0.02
+    """Sensor update period in seconds."""
+
+    offset: list[float] = field(default_factory=lambda: [0.0, 0.0, 20.0])
+    """Ray start offset from the attached body frame."""
+
+    resolution: float = 0.1
+    """Grid resolution in meters."""
+
+    size: list[float] = field(default_factory=lambda: [1.6, 1.6])
+    """Grid size [x, y] in meters."""
+
+    attach_yaw_only: bool = True
+    """Rotate the ray grid by yaw only, matching heightmap-style locomotion observations."""
+
+    debug_vis: bool = False
+    """Whether to visualize ray hits."""
+
+
+@dataclass(frozen=True)
 class BridgeConfig:
     """Configuration for robot SDK bridge integration.
 
@@ -550,6 +593,9 @@ class SimulatorInitConfig:
 
     virtual_gantry: VirtualGantryCfg = field(default_factory=VirtualGantryCfg)
     """Virtual gantry system configuration."""
+
+    height_scanner: HeightScannerCfg = field(default_factory=HeightScannerCfg)
+    """Ray-cast height scanner configuration."""
 
 
 @dataclass(frozen=True)

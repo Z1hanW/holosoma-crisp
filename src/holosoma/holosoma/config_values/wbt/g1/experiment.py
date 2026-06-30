@@ -28,7 +28,7 @@ g1_29dof_wbt = ExperimentConfig(
             algo.ppo.config,
             num_learning_iterations=30000,
             num_learning_epochs=5,
-            save_interval=4000,
+            save_interval=1000,
             entropy_coef=0.005,
             init_noise_std=1.0,
             actor_learning_rate=1e-3,
@@ -78,6 +78,19 @@ g1_29dof_wbt = ExperimentConfig(
             "Episode/rew_motion_global_body_lin_vel": [0.60, "inf"],
             "Episode/rew_motion_global_body_ang_vel": [0.45, "inf"],
         },
+    ),
+)
+
+g1_29dof_wbt_height_scan = replace(
+    g1_29dof_wbt,
+    training=replace(g1_29dof_wbt.training, name="g1_29dof_wbt_height_scan_manager"),
+    observation=observation.g1_29dof_wbt_observation_with_height_scan,
+    simulator=replace(
+        g1_29dof_wbt.simulator,
+        config=replace(
+            g1_29dof_wbt.simulator.config,
+            height_scanner=replace(g1_29dof_wbt.simulator.config.height_scanner, enabled=True),
+        ),
     ),
 )
 
@@ -170,6 +183,19 @@ g1_29dof_wbt_w_object = replace(
     ),
 )
 
+g1_29dof_wbt_w_object_height_scan = replace(
+    g1_29dof_wbt_w_object,
+    training=replace(g1_29dof_wbt_w_object.training, name="g1_29dof_wbt_w_object_height_scan_manager"),
+    observation=observation.g1_29dof_wbt_observation_w_object_with_height_scan,
+    simulator=replace(
+        g1_29dof_wbt_w_object.simulator,
+        config=replace(
+            g1_29dof_wbt_w_object.simulator.config,
+            height_scanner=replace(g1_29dof_wbt_w_object.simulator.config.height_scanner, enabled=True),
+        ),
+    ),
+)
+
 g1_29dof_wbt_fast_sac_w_object = replace(
     g1_29dof_wbt_fast_sac,
     command=command.g1_29dof_wbt_command_w_object,
@@ -195,7 +221,9 @@ __all__ = [
     "g1_29dof_wbt",
     "g1_29dof_wbt_fast_sac",
     "g1_29dof_wbt_fast_sac_w_object",
+    "g1_29dof_wbt_height_scan",
     "g1_29dof_wbt_w_object",
+    "g1_29dof_wbt_w_object_height_scan",
 ]
 
 """
@@ -209,7 +237,7 @@ python src/holosoma/holosoma/train_agent.py \
 
 Example 3: Robot+Terrain:
 python src/holosoma/holosoma/train_agent.py \
-  exp:g1-29dof-wbt \
+  exp:g1-29dof-wbt-height-scan \
   terrain:terrain-load-obj \
   --terrain.terrain-term.obj-file-path="holosoma/data/motions/g1_29dof/whole_body_tracking/terrain_slope.obj" \
   --command.setup_terms.motion_command.params.motion_config.motion_file\

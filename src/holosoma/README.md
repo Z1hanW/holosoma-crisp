@@ -145,6 +145,44 @@ This evaluation mode:
   - `q`/`e`: angular velocity commands
   - `z`: zero velocity command
 
+### True-Physics Policy Rollout in Viser
+
+This is a real physics rollout: the policy is stepped in IsaacSim, physics is advanced normally, and Viser only streams
+the resulting simulator state. It is not motion replay, reference playback, or kinematic visualization.
+
+For inspecting a policy in Viser during a true IsaacSim physics rollout, use the current repository's physics streamer:
+
+```bash
+source scripts/source_isaacsim_setup.sh
+python scripts/viser_current_physics_rollout.py \
+    --checkpoint=/path/to/model_16000.pt \
+    --port=2099 \
+    --randomize-tiles \
+    --xy-offset-range=1.0 \
+    --disable-randomization
+```
+
+This runner does not replay a motion file. It advances the policy in IsaacSim physics and streams the actual simulator
+`robot_root_states` and `dof_pos` to Viser, so the robot shown in Viser is the real rollout state.
+
+For WBT policies trained with `terrain:terrain-load-obj`, keep the evaluation terrain origin path aligned with
+training. In particular, do not force deterministic tile spawning unless the OBJ terrain origin logic supports it:
+
+```bash
+python src/holosoma/holosoma/eval_agent.py \
+    --checkpoint=/path/to/model.pt \
+    --terrain.terrain-term.spawn.randomize-tiles=True \
+    --terrain.terrain-term.spawn.xy-offset-range=1.0
+```
+
+Troubleshooting notes:
+- Do not evaluate a checkpoint with Viser modules imported from a different checkout. The robot URDF/collision assets
+  and config schema can differ, which makes a valid policy appear to fail.
+- For `LOAD_OBJ` terrain, the training path uses `sample_env_origins()` when `randomize_tiles=True`. If eval or a
+  visualization wrapper switches to `randomize_tiles=False`, it may use a different or invalid terrain origin.
+- If a Viser rollout starts with the robot floating, intersecting, or falling immediately while normal IsaacSim eval
+  succeeds, first check the URDF path and terrain origin settings before changing the policy.
+
 ### Cross-Simulator Evaluation (MuJoCo)
 
 For testing trained policies in MuJoCo simulation or deploying to real robots, see the [holosoma_inference documentation](../holosoma_inference/README.md). This covers:

@@ -76,7 +76,8 @@ class IsaacSim(BaseSimulator):
                 solver_type=self.simulator_config.sim.physx.solver_type,
                 max_position_iteration_count=self.simulator_config.sim.physx.num_position_iterations,
                 max_velocity_iteration_count=self.simulator_config.sim.physx.num_velocity_iterations,
-                gpu_max_rigid_patch_count=10 * 2**15,
+                gpu_max_rigid_patch_count=self.simulator_config.sim.physx.gpu_max_rigid_patch_count,
+                gpu_collision_stack_size=self.simulator_config.sim.physx.gpu_collision_stack_size,
             ),
             # Global physics material, can be overridden by the individual articulation
             # Can be inspected by:
@@ -318,17 +319,20 @@ class IsaacSim(BaseSimulator):
 
         terrain_prim_path = "/World/ground"
         height_scanner_config = None
+        height_scanner_cfg = getattr(self.simulator_config, "height_scanner", None)
         terrain_state = self.terrain_manager.get_state("locomotion_terrain")
-        if terrain_state.mesh_type not in ["fake", None]:
-            # Add a height scanner to the torso to detect the height of the terrain mesh
-            # TODO: Scene USD files need ground mapping
+        if height_scanner_cfg is not None and height_scanner_cfg.enabled and terrain_state.mesh_type not in ["fake", None]:
+            height_scanner_body_name = self._get_height_scanner_body_name()
             height_scanner_config = RayCasterCfg(
-                prim_path=f"/World/envs/env_.*/Robot/{self.robot_config.body_names[0]}",
-                offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 0.0)),
-                attach_yaw_only=True,
-                # Apply a grid pattern that is smaller than the resolution to only return one height value.
-                pattern_cfg=patterns.GridPatternCfg(resolution=0.1, size=[0.05, 0.05]),
-                debug_vis=False,
+                prim_path=f"/World/envs/env_.*/Robot/{height_scanner_body_name}",
+                update_period=height_scanner_cfg.update_period,
+                offset=RayCasterCfg.OffsetCfg(pos=tuple(height_scanner_cfg.offset)),
+                attach_yaw_only=height_scanner_cfg.attach_yaw_only,
+                pattern_cfg=patterns.GridPatternCfg(
+                    resolution=height_scanner_cfg.resolution,
+                    size=tuple(height_scanner_cfg.size),
+                ),
+                debug_vis=height_scanner_cfg.debug_vis,
                 mesh_prim_paths=[terrain_prim_path],
             )
 
@@ -384,7 +388,7 @@ class IsaacSim(BaseSimulator):
 
         if height_scanner_config:
             self._height_scanner = RayCaster(height_scanner_config)
-            self.scene.sensors["height_scanner"] = self._height_scanner
+            self.scene.sensors[height_scanner_cfg.sensor_name] = self._height_scanner
 
         # clone, filter, and replicate
         self.scene.clone_environments(copy_from_source=False)
@@ -463,6 +467,20 @@ class IsaacSim(BaseSimulator):
         raise ValueError(
             f"None of the preferred base body names {preference_order} found in robot body names: {body_names}"
         )
+
+    def _get_height_scanner_body_name(self) -> str:
+        """Resolve the robot body used by the ray-cast height scanner."""
+        cfg = self.simulator_config.height_scanner
+        if cfg.body_name is not None:
+            return cfg.body_name
+
+        for body_name in cfg.fallback_body_names:
+            if body_name in self.robot_config.body_names:
+                return body_name
+
+        if not self.robot_config.body_names:
+            raise ValueError("Cannot attach height scanner because robot_config.body_names is empty.")
+        return self.robot_config.body_names[0]
 
     def get_supported_scene_formats(self) -> list[str]:
         """See base class.

@@ -40,6 +40,22 @@ actor_obs_shared = ObsGroupCfg(
     },
 )
 
+height_scan_obs_term = ObsTermCfg(
+    func="holosoma.managers.observation.terms.wbt:height_scan",
+    scale=1.0,
+    noise=0.0,
+)
+
+actor_obs_with_height_scan = ObsGroupCfg(
+    concatenate=True,
+    enable_noise=True,
+    history_length=1,
+    terms={
+        **actor_obs_shared.terms,
+        "height_scan": height_scan_obs_term,
+    },
+)
+
 critic_obs_shared_terms = {
     "motion_command": ObsTermCfg(
         func="holosoma.managers.observation.terms.wbt:motion_command",
@@ -93,6 +109,11 @@ critic_obs_shared_terms = {
     ),
 }
 
+critic_obs_shared_height_scan_terms = {
+    **critic_obs_shared_terms,
+    "height_scan": height_scan_obs_term,
+}
+
 critic_obs_w_object_terms = critic_obs_shared_terms.copy()
 critic_obs_w_object_terms.update(
     {
@@ -114,6 +135,11 @@ critic_obs_w_object_terms.update(
     }
 )
 
+critic_obs_w_object_height_scan_terms = {
+    **critic_obs_w_object_terms,
+    "height_scan": height_scan_obs_term,
+}
+
 g1_29dof_wbt_observation = ObservationManagerCfg(
     groups={
         "actor_obs": actor_obs_shared,
@@ -122,6 +148,18 @@ g1_29dof_wbt_observation = ObservationManagerCfg(
             enable_noise=False,
             history_length=1,
             terms=critic_obs_shared_terms,
+        ),
+    },
+)
+
+g1_29dof_wbt_observation_with_height_scan = ObservationManagerCfg(
+    groups={
+        "actor_obs": actor_obs_with_height_scan,
+        "critic_obs": ObsGroupCfg(
+            concatenate=True,
+            enable_noise=False,
+            history_length=1,
+            terms=critic_obs_shared_height_scan_terms,
         ),
     },
 )
@@ -138,4 +176,21 @@ g1_29dof_wbt_observation_w_object = ObservationManagerCfg(
     },
 )
 
-__all__ = ["g1_29dof_wbt_observation", "g1_29dof_wbt_observation_w_object"]
+g1_29dof_wbt_observation_w_object_with_height_scan = ObservationManagerCfg(
+    groups={
+        "actor_obs": actor_obs_with_height_scan,
+        "critic_obs": ObsGroupCfg(
+            concatenate=True,
+            enable_noise=False,
+            history_length=1,
+            terms=critic_obs_w_object_height_scan_terms,
+        ),
+    },
+)
+
+__all__ = [
+    "g1_29dof_wbt_observation",
+    "g1_29dof_wbt_observation_with_height_scan",
+    "g1_29dof_wbt_observation_w_object",
+    "g1_29dof_wbt_observation_w_object_with_height_scan",
+]

@@ -118,6 +118,23 @@ def actions(env: WholeBodyTrackingManager) -> torch.Tensor:
     return env.action_manager.action
 
 
+def height_scan(env: WholeBodyTrackingManager, sensor_name: str = "height_scanner", offset: float = 0.5) -> torch.Tensor:
+    """Height scan from an IsaacLab RayCaster sensor.
+
+    Matches IsaacLab's height_scan convention:
+    sensor_world_z - terrain_hit_world_z - offset.
+    """
+    sensors = getattr(getattr(env.simulator, "scene", None), "sensors", {})
+    if sensor_name not in sensors:
+        raise RuntimeError(
+            f"Height scanner sensor '{sensor_name}' is not available. "
+            "Enable it with --simulator.config.height-scanner.enabled=True."
+        )
+
+    sensor = sensors[sensor_name]
+    return sensor.data.pos_w[:, 2].unsqueeze(1) - sensor.data.ray_hits_w[..., 2] - offset
+
+
 #########################################################################################################
 ## terms specific to Whole Body Tracking
 #########################################################################################################
