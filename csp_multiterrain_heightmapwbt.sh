@@ -55,7 +55,7 @@ TIMESTAMP="${TIMESTAMP:-$(date -u +%Y%m%d_%H%M%S)}"
 
 WANDB_ENTITY="${WANDB_ENTITY:-zihanw22}"
 WANDB_PROJECT="${WANDB_PROJECT:-holosomatest}"
-NUM_GPUS="${NUM_GPUS:-4}"
+NUM_GPUS="${NUM_GPUS:-8}"
 ENVS_PER_GPU="${ENVS_PER_GPU:-4096}"
 TOTAL_ENVS="${TOTAL_ENVS:-$((NUM_GPUS * ENVS_PER_GPU))}"
 NUM_ITERATIONS="${NUM_ITERATIONS:-10000}"
@@ -65,6 +65,12 @@ PHYSX_STACK_LABEL="${PHYSX_STACK_LABEL:-physxstack$((PHYSX_GPU_COLLISION_STACK_S
 HEIGHT_SCANNER_BODY_NAME="${HEIGHT_SCANNER_BODY_NAME:-pelvis}"
 HEIGHT_SCANNER_RESOLUTION="${HEIGHT_SCANNER_RESOLUTION:-0.1}"
 HEIGHT_SCANNER_DEBUG_VIS="${HEIGHT_SCANNER_DEBUG_VIS:-False}"
+USE_ADAPTIVE_TIMESTEPS_SAMPLER="${USE_ADAPTIVE_TIMESTEPS_SAMPLER:-False}"
+if [[ "${USE_ADAPTIVE_TIMESTEPS_SAMPLER,,}" == "true" || "${USE_ADAPTIVE_TIMESTEPS_SAMPLER}" == "1" ]]; then
+  ADAPTIVE_TIMESTEPS_LABEL="${ADAPTIVE_TIMESTEPS_LABEL:-adaptive}"
+else
+  ADAPTIVE_TIMESTEPS_LABEL="${ADAPTIVE_TIMESTEPS_LABEL:-noadaptive}"
+fi
 
 CRISP_ROOT="${CRISP_ROOT:-${SCRIPT_DIR}/crisp_stairs}"
 FUSED_DIR="${FUSED_DIR:-${CRISP_ROOT}/_fused}"
@@ -76,7 +82,7 @@ REBUILD_FUSED_ASSETS="${REBUILD_FUSED_ASSETS:-0}"
 
 MOTION_FILE="${MOTION_FILE:-${FUSED_DIR}/${FUSED_PREFIX}.npz}"
 TERRAIN_OBJ="${TERRAIN_OBJ:-${FUSED_DIR}/${FUSED_PREFIX}.obj}"
-RUN_NAME="${RUN_NAME:-${HOSTNAME_SHORT}_g1_29dof_wbt_motionstairs16_csp_multiterrain_heightmapwbt_${PHYSX_STACK_LABEL}_${NUM_GPUS}gpu_${ENVS_PER_GPU}env_${TIMESTAMP}}"
+RUN_NAME="${RUN_NAME:-${HOSTNAME_SHORT}_g1_29dof_wbt_motionstairs16_csp_multiterrain_heightmapwbt_${ADAPTIVE_TIMESTEPS_LABEL}_${PHYSX_STACK_LABEL}_${NUM_GPUS}gpu_${ENVS_PER_GPU}env_${TIMESTAMP}}"
 SESSION="${SESSION:-csp_multiterrain_heightmapwbt_${TIMESTAMP}}"
 LOG_DIR="${LOG_DIR:-logs/run_commands}"
 LOG_FILE="${LOG_FILE:-${LOG_DIR}/${SESSION}.log}"
@@ -98,7 +104,7 @@ if [[ "${1:-}" != "--run" && "${RUN_IN_TMUX:-1}" == "1" ]]; then
   mkdir -p "${LOG_DIR}"
   printf "%s\n" "${RUN_NAME}" > "${LOG_DIR}/${SESSION}.run_name"
 
-  TMUX_ENV="RUN_IN_TMUX=0 TIMESTAMP=$(quote "${TIMESTAMP}") HOSTNAME_SHORT=$(quote "${HOSTNAME_SHORT}") WANDB_ENTITY=$(quote "${WANDB_ENTITY}") WANDB_PROJECT=$(quote "${WANDB_PROJECT}") NUM_GPUS=$(quote "${NUM_GPUS}") ENVS_PER_GPU=$(quote "${ENVS_PER_GPU}") TOTAL_ENVS=$(quote "${TOTAL_ENVS}") NUM_ITERATIONS=$(quote "${NUM_ITERATIONS}") SAVE_INTERVAL=$(quote "${SAVE_INTERVAL}") PHYSX_GPU_COLLISION_STACK_SIZE=$(quote "${PHYSX_GPU_COLLISION_STACK_SIZE}") PHYSX_STACK_LABEL=$(quote "${PHYSX_STACK_LABEL}") HEIGHT_SCANNER_BODY_NAME=$(quote "${HEIGHT_SCANNER_BODY_NAME}") HEIGHT_SCANNER_RESOLUTION=$(quote "${HEIGHT_SCANNER_RESOLUTION}") HEIGHT_SCANNER_DEBUG_VIS=$(quote "${HEIGHT_SCANNER_DEBUG_VIS}") CRISP_ROOT=$(quote "${CRISP_ROOT}") FUSED_DIR=$(quote "${FUSED_DIR}") FUSED_PREFIX=$(quote "${FUSED_PREFIX}") FUSE_SCRIPT=$(quote "${FUSE_SCRIPT}") FUSE_CLIPS=$(quote "${FUSE_CLIPS}") BUILD_FUSED_ASSETS=$(quote "${BUILD_FUSED_ASSETS}") REBUILD_FUSED_ASSETS=$(quote "${REBUILD_FUSED_ASSETS}") MOTION_FILE=$(quote "${MOTION_FILE}") TERRAIN_OBJ=$(quote "${TERRAIN_OBJ}") RUN_NAME=$(quote "${RUN_NAME}") SESSION=$(quote "${SESSION}") LOG_DIR=$(quote "${LOG_DIR}") LOG_FILE=$(quote "${LOG_FILE}") MASTER_PORT=$(quote "${MASTER_PORT}")"
+  TMUX_ENV="RUN_IN_TMUX=0 TIMESTAMP=$(quote "${TIMESTAMP}") HOSTNAME_SHORT=$(quote "${HOSTNAME_SHORT}") WANDB_ENTITY=$(quote "${WANDB_ENTITY}") WANDB_PROJECT=$(quote "${WANDB_PROJECT}") NUM_GPUS=$(quote "${NUM_GPUS}") ENVS_PER_GPU=$(quote "${ENVS_PER_GPU}") TOTAL_ENVS=$(quote "${TOTAL_ENVS}") NUM_ITERATIONS=$(quote "${NUM_ITERATIONS}") SAVE_INTERVAL=$(quote "${SAVE_INTERVAL}") PHYSX_GPU_COLLISION_STACK_SIZE=$(quote "${PHYSX_GPU_COLLISION_STACK_SIZE}") PHYSX_STACK_LABEL=$(quote "${PHYSX_STACK_LABEL}") HEIGHT_SCANNER_BODY_NAME=$(quote "${HEIGHT_SCANNER_BODY_NAME}") HEIGHT_SCANNER_RESOLUTION=$(quote "${HEIGHT_SCANNER_RESOLUTION}") HEIGHT_SCANNER_DEBUG_VIS=$(quote "${HEIGHT_SCANNER_DEBUG_VIS}") USE_ADAPTIVE_TIMESTEPS_SAMPLER=$(quote "${USE_ADAPTIVE_TIMESTEPS_SAMPLER}") ADAPTIVE_TIMESTEPS_LABEL=$(quote "${ADAPTIVE_TIMESTEPS_LABEL}") CRISP_ROOT=$(quote "${CRISP_ROOT}") FUSED_DIR=$(quote "${FUSED_DIR}") FUSED_PREFIX=$(quote "${FUSED_PREFIX}") FUSE_SCRIPT=$(quote "${FUSE_SCRIPT}") FUSE_CLIPS=$(quote "${FUSE_CLIPS}") BUILD_FUSED_ASSETS=$(quote "${BUILD_FUSED_ASSETS}") REBUILD_FUSED_ASSETS=$(quote "${REBUILD_FUSED_ASSETS}") MOTION_FILE=$(quote "${MOTION_FILE}") TERRAIN_OBJ=$(quote "${TERRAIN_OBJ}") RUN_NAME=$(quote "${RUN_NAME}") SESSION=$(quote "${SESSION}") LOG_DIR=$(quote "${LOG_DIR}") LOG_FILE=$(quote "${LOG_FILE}") MASTER_PORT=$(quote "${MASTER_PORT}")"
   if [[ -n "${CUDA_VISIBLE_DEVICES:-}" ]]; then
     TMUX_ENV="CUDA_VISIBLE_DEVICES=$(quote "${CUDA_VISIBLE_DEVICES}") ${TMUX_ENV}"
   fi
@@ -116,6 +122,7 @@ if [[ "${1:-}" != "--run" && "${RUN_IN_TMUX:-1}" == "1" ]]; then
   echo "  physx_gpu_collision_stack_size: ${PHYSX_GPU_COLLISION_STACK_SIZE}"
   echo "  height_scanner_body: ${HEIGHT_SCANNER_BODY_NAME}"
   echo "  height_scanner_resolution: ${HEIGHT_SCANNER_RESOLUTION}"
+  echo "  use_adaptive_timesteps_sampler: ${USE_ADAPTIVE_TIMESTEPS_SAMPLER}"
   exit 0
 fi
 
@@ -152,6 +159,7 @@ torchrun \
   --terrain.terrain-term.num-cols=1 \
   --terrain.terrain-term.load-obj-add-floor=False \
   --command.setup_terms.motion_command.params.motion_config.motion_file="${MOTION_FILE}" \
+  --command.setup_terms.motion_command.params.motion_config.use_adaptive_timesteps_sampler="${USE_ADAPTIVE_TIMESTEPS_SAMPLER}" \
   --simulator.config.scene.env-spacing=0.0 \
   --simulator.config.height-scanner.enabled=True \
   --simulator.config.height-scanner.body-name="${HEIGHT_SCANNER_BODY_NAME}" \

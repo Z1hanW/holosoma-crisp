@@ -132,7 +132,9 @@ cd /home/ubuntu/FAR/holosoma
 ./csp_multiterrain_heightmapwbt.sh
 ```
 
-The script defaults to 4 GPUs with 4096 envs per GPU and checkpoint save interval `1000`. It automatically builds the fused assets when missing, uses `exp:g1-29dof-wbt-height-scan`, and loads the fused OBJ with `num_rows=1` and `num_cols=1`. Those terrain grid overrides are required because the OBJ is already the full fused multi-terrain world; the WBT command handles per-motion origin placement. The multi-terrain script uses PhysX GPU collision stack size `1073741824` by default; the 512MB single-stair setting can overflow on the fused stair mesh and drop contacts.
+The script defaults to 8 GPUs with 4096 envs per GPU and checkpoint save interval `1000`. It automatically builds the fused assets when missing, uses `exp:g1-29dof-wbt-height-scan`, and loads the fused OBJ with `num_rows=1` and `num_cols=1`. Those terrain grid overrides are required because the OBJ is already the full fused multi-terrain world; the WBT command handles per-motion origin placement. The multi-terrain script uses PhysX GPU collision stack size `1073741824` by default; the 512MB single-stair setting can overflow on the fused stair mesh and drop contacts.
+
+For multi-terrain debugging, the script defaults `USE_ADAPTIVE_TIMESTEPS_SAMPLER=False` and adds `noadaptive` to the run name. The original global adaptive timestep sampler bins failures over the concatenated fused motion frame axis. On the 16-motion stair batch this can collapse almost all resets onto one hard global bin, for example W&B run `h5xzojtc` showed sampler entropy near `0.02`, top1 probability around `0.989`, top1 bin around `0.897`, and episode length around `30`. That bin falls inside the later stair clip range, so the policy stops seeing a balanced distribution of terrains. Keep it off until we replace it with a per-motion or motion-balanced adaptive sampler.
 
 Useful overrides:
 
@@ -140,8 +142,11 @@ Useful overrides:
 # Rebuild the fused assets before launch.
 REBUILD_FUSED_ASSETS=1 ./csp_multiterrain_heightmapwbt.sh
 
-# Use 8 GPUs with 4096 envs per GPU.
-NUM_GPUS=8 ENVS_PER_GPU=4096 ./csp_multiterrain_heightmapwbt.sh
+# Use 4 GPUs for a smaller debug run.
+NUM_GPUS=4 ENVS_PER_GPU=4096 ./csp_multiterrain_heightmapwbt.sh
+
+# Re-enable the old global adaptive sampler only for controlled experiments.
+USE_ADAPTIVE_TIMESTEPS_SAMPLER=True ./csp_multiterrain_heightmapwbt.sh
 
 # Run in the foreground and forward extra train_agent.py flags.
 RUN_IN_TMUX=0 ./csp_multiterrain_heightmapwbt.sh --run --training.seed=3
