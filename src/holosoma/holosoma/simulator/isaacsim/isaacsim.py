@@ -333,7 +333,7 @@ class IsaacSim(BaseSimulator):
                 prim_path=f"/World/envs/env_.*/Robot/{height_scanner_body_name}",
                 update_period=height_scanner_cfg.update_period,
                 offset=RayCasterCfg.OffsetCfg(pos=tuple(height_scanner_cfg.offset)),
-                attach_yaw_only=height_scanner_cfg.attach_yaw_only,
+                ray_alignment="yaw" if height_scanner_cfg.attach_yaw_only else "base",
                 pattern_cfg=patterns.GridPatternCfg(
                     resolution=height_scanner_cfg.resolution,
                     size=tuple(height_scanner_cfg.size),
@@ -366,7 +366,7 @@ class IsaacSim(BaseSimulator):
                             prim_path=f"/World/envs/env_.*/Robot/{body_name}",
                             update_period=foot_raycasters_cfg.update_period,
                             offset=RayCasterCfg.OffsetCfg(pos=tuple(foot_raycasters_cfg.offset)),
-                            attach_yaw_only=foot_raycasters_cfg.attach_yaw_only,
+                            ray_alignment="yaw" if foot_raycasters_cfg.attach_yaw_only else "base",
                             pattern_cfg=patterns.GridPatternCfg(
                                 resolution=foot_raycasters_cfg.resolution,
                                 size=tuple(foot_raycasters_cfg.size),
