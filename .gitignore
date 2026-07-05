@@ -33,6 +33,7 @@ __pycache__
 
 # CRISP generated terrain/motion data
 src/holosoma_retargeting/holosoma_retargeting/demo_data/crisp_terrain*/
+src/holosoma/holosoma/data/motions/g1_29dof/whole_body_tracking/crisp_s2r/
 
 # Gas Town (added by gt)
 .runtime/
