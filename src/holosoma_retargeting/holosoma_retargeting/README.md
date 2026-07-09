@@ -6,16 +6,17 @@ This repository provides tools for retargeting human motion data to humanoid rob
 
 ## CRISP Real2Sim2Real Terrain
 
-CRISP terrain conversion lives in `crisp/`. It converts CRISP z-up
-`scene_mesh_sqs/pieces/*.obj` outputs into Holosoma climbing folders containing
-`multi_boxes.obj`, `multi_boxes.urdf`, `box_assets.xml`, `box_body.xml`, and
-`g1_29dof_spherehand_w_multi_boxes.xml`.
+CRISP conversion lives in `crisp/`. It consumes z-up
+`scene_mesh_sqs/pieces/*.obj` plus aligned HMR SMPL-X joints and writes Holosoma
+climbing folders with `multi_boxes.obj`, per-piece URDF/MJCF collision assets,
+and `<sequence>.npy`.
 
-Important contract: the converter faithfully copies z-up CRISP geometry. It does
-not rotate, translate, rescale, align, or viewer-correct the scene. Each terrain
-piece is represented as a separate URDF collision link and separate MuJoCo mesh
-geom, so collision is computed per piece instead of through one combined convex
-hull. See `crisp/README.md` for conversion and retargeting commands.
+Retargeting scene points default to `--task-config.object-point-mode auto`: for
+CRISP primitive scenes this uses each `pieces/*.obj` mesh's vertices plus center;
+large pieces use bbox corners plus center; scenes without pieces fall back to
+surface sampling.
+
+See `../../../s2r_readme.md` for the canonical CRISP S2R commands.
 
 ## Single Sequence Motion Retargeting
 

@@ -8,6 +8,7 @@ import os
 import pickle
 import re
 from pathlib import Path
+from typing import Literal
 
 import numpy as np
 import smplx  # type: ignore[import-not-found]
@@ -16,6 +17,58 @@ import trimesh
 from jinja2 import Template
 from scipy.spatial import Delaunay  # type: ignore[import-untyped]
 from scipy.spatial.transform import Rotation as R  # type: ignore[import-untyped]  # noqa: N817
+
+
+RaycastZMode = Literal["per_frame", "sequence", "global"]
+ObjectPointMode = Literal["auto", "primitive_vertices_center", "surface_sample", "oriented_bbox"]
+
+
+def _natural_path_key(path: Path) -> list[int | str]:
+    return [int(part) if part.isdigit() else part for part in re.split(r"(\d+)", path.as_posix())]
+
+
+def _unique_points(points: np.ndarray, decimals: int = 8) -> np.ndarray:
+    points = np.asarray(points, dtype=float).reshape(-1, 3)
+    if len(points) == 0:
+        return points
+    _, unique_indices = np.unique(np.round(points, decimals=decimals), axis=0, return_index=True)
+    return points[np.sort(unique_indices)]
+
+
+def _find_primitive_piece_files(object_file: str | os.PathLike) -> list[Path]:
+    object_path = Path(object_file)
+    object_dir = object_path.parent if object_path.parent != Path("") else Path(".")
+    piece_files: list[Path] = []
+    for piece_dir_name in ("pieces", "box_models"):
+        piece_dir = object_dir / piece_dir_name
+        if piece_dir.is_dir():
+            piece_files.extend(piece_dir.glob("*.obj"))
+    return sorted(piece_files, key=_natural_path_key)
+
+
+def _load_primitive_vertices_center_points(
+    object_file: str | os.PathLike,
+    max_vertices_per_piece: int = 64,
+) -> np.ndarray | None:
+    piece_files = _find_primitive_piece_files(object_file)
+    if not piece_files:
+        return None
+
+    points_per_piece: list[np.ndarray] = []
+    for piece_file in piece_files:
+        piece_mesh = trimesh.load(piece_file, force="mesh")
+        vertices = np.asarray(piece_mesh.vertices, dtype=float).reshape(-1, 3)
+        if len(vertices) == 0:
+            continue
+        vertices = _unique_points(vertices)
+        if len(vertices) > max_vertices_per_piece:
+            vertices = np.asarray(piece_mesh.bounding_box.vertices, dtype=float)
+        center = np.asarray(piece_mesh.bounds, dtype=float).mean(axis=0, keepdims=True)
+        points_per_piece.append(_unique_points(np.vstack([vertices, center])))
+
+    if not points_per_piece:
+        return None
+    return np.vstack(points_per_piece)
 
 
 def load_intermimic_data(file_path):
@@ -52,9 +105,11 @@ def load_object_data(
     seed=42,
     surface_weights=None,
     use_face_normals=False,
+    point_mode: ObjectPointMode = "auto",
+    max_vertices_per_piece: int = 64,
 ):
     """
-    Loads an object mesh and samples points from its surface.
+    Loads object points used to build the interaction Laplacian.
 
     Args:
         object_file (str): Path to the object mesh file.
@@ -65,24 +120,41 @@ def load_object_data(
         surface_weights: Weight function for sampling. If use_face_normals=True,
                         should take (face_normal, face_center) as arguments.
         use_face_normals (bool): Whether to use face-normal-based sampling.
+        point_mode: Point source. "auto" prefers per-piece primitive vertices and
+                    centers when piece meshes are available, then falls back to
+                    legacy surface sampling.
+        max_vertices_per_piece: Use bbox corners instead of all vertices for a
+                                piece with more than this many unique vertices.
 
     Returns:
         tuple: (points, points_scaled) - original and scaled point arrays.
     """
-    print("Loading and sampling object mesh...")
-    obj_mesh = trimesh.load(object_file, force="mesh")
+    points = None
+    if point_mode in {"auto", "primitive_vertices_center"}:
+        points = _load_primitive_vertices_center_points(
+            object_file,
+            max_vertices_per_piece=max_vertices_per_piece,
+        )
+        if points is not None:
+            print(f"Loaded primitive object points: {len(points)} points from per-piece vertices + centers.")
+        elif point_mode == "primitive_vertices_center":
+            raise ValueError(f"No primitive piece meshes found next to object mesh: {object_file}")
 
-    if bounding_box_oriented:
-        points = obj_mesh.bounding_box_oriented.vertices
-    elif surface_weights is not None:
-        if use_face_normals:
-            # Use face-normal-based weighted sampling
-            points = weighted_surface_sampling_by_face_normal(obj_mesh, sample_count, surface_weights, seed)
+    if points is None:
+        print("Loading and sampling object mesh...")
+        obj_mesh = trimesh.load(object_file, force="mesh")
+
+        if bounding_box_oriented or point_mode == "oriented_bbox":
+            points = obj_mesh.bounding_box_oriented.vertices
+        elif surface_weights is not None:
+            if use_face_normals:
+                # Use face-normal-based weighted sampling
+                points = weighted_surface_sampling_by_face_normal(obj_mesh, sample_count, surface_weights, seed)
+            else:
+                # Use center-based weighted sampling
+                points = weighted_surface_sampling(obj_mesh, sample_count, surface_weights, seed)
         else:
-            # Use center-based weighted sampling
-            points = weighted_surface_sampling(obj_mesh, sample_count, surface_weights, seed)
-    else:
-        points, _ = trimesh.sample.sample_surface_even(obj_mesh, sample_count, seed=seed)
+            points, _ = trimesh.sample.sample_surface_even(obj_mesh, sample_count, seed=seed)
 
     points = np.array(points)
     points_scaled = points * smpl_scale
@@ -205,6 +277,162 @@ def weighted_surface_sampling_by_face_normal(mesh, sample_count, weight_func, se
     return np.array(sampled_points)
 
 
+def _compute_legacy_toe_z_offset(human_joints: np.ndarray, toe_indices: list[int], mat_height: float) -> float:
+    z_min = float(human_joints[:, toe_indices, 2].min())
+    if z_min >= mat_height:
+        # On a mat.
+        z_min -= mat_height
+    return -z_min
+
+
+def _raycast_down_to_mesh_z(
+    mesh: trimesh.Trimesh,
+    origins: np.ndarray,
+    batch_size: int = 8192,
+    origin_z_epsilon: float = 1e-4,
+) -> np.ndarray:
+    """Return the closest scene z hit below each origin; NaN means no hit."""
+    hit_z = np.full(origins.shape[0], np.nan, dtype=float)
+    directions = np.tile(np.array([0.0, 0.0, -1.0]), (batch_size, 1))
+
+    for start in range(0, origins.shape[0], batch_size):
+        end = min(start + batch_size, origins.shape[0])
+        batch_origins = np.asarray(origins[start:end], dtype=float).copy()
+        batch_origins[:, 2] += origin_z_epsilon
+        batch_dirs = directions[: end - start]
+
+        locations, index_ray, _ = mesh.ray.intersects_location(batch_origins, batch_dirs, multiple_hits=True)
+        if len(locations) == 0:
+            continue
+
+        for location, ray_idx in zip(locations, index_ray):
+            z_hit = float(location[2])
+            global_idx = start + int(ray_idx)
+            # With a -z ray, the largest z below the origin is the first surface touched.
+            if z_hit <= batch_origins[int(ray_idx), 2] + 1e-8 and (
+                np.isnan(hit_z[global_idx]) or z_hit > hit_z[global_idx]
+            ):
+                hit_z[global_idx] = z_hit
+
+    return hit_z
+
+
+def _raycast_local_surface_z(
+    mesh: trimesh.Trimesh,
+    points: np.ndarray,
+    batch_size: int = 8192,
+    origin_z_margin: float = 0.5,
+) -> np.ndarray:
+    """Return local terrain z by casting from just above each point toward -z."""
+    origins = np.asarray(points, dtype=float).reshape(-1, 3).copy()
+    origins[:, 2] += origin_z_margin
+    return _raycast_down_to_mesh_z(mesh, origins, batch_size=batch_size, origin_z_epsilon=0.0)
+
+
+def _scene_raycast_reference_indices(demo_joints: list[str], toe_indices: list[int]) -> list[int]:
+    reference_keywords = ("foot", "toe", "ankle")
+    reference_indices = [
+        idx for idx, name in enumerate(demo_joints) if any(keyword in name.lower() for keyword in reference_keywords)
+    ]
+    reference_indices.extend(toe_indices)
+    return sorted(set(reference_indices))
+
+
+def _apply_scene_raycast_z_alignment(
+    human_joints: np.ndarray,
+    toe_indices: list[int],
+    reference_indices: list[int],
+    object_mesh_file: str | Path | None,
+    legacy_offset: float,
+    mode: RaycastZMode,
+    clearance: float,
+    global_percentile: float,
+) -> bool:
+    if object_mesh_file is None:
+        return False
+
+    mesh_path = Path(object_mesh_file)
+    if not mesh_path.is_file():
+        print(f"[preprocess_motion_data] Scene raycast z alignment skipped: missing mesh {mesh_path}")
+        return False
+
+    mesh = trimesh.load(str(mesh_path), force="mesh")
+    if len(mesh.vertices) == 0 or len(mesh.faces) == 0:
+        print(f"[preprocess_motion_data] Scene raycast z alignment skipped: empty mesh {mesh_path}")
+        return False
+
+    num_frames = human_joints.shape[0]
+    reference_joints = human_joints[:, reference_indices, :]
+    reference_points = reference_joints.reshape(-1, 3)
+    hit_z = _raycast_local_surface_z(mesh, reference_points).reshape(num_frames, len(reference_indices))
+    hit_mask = np.isfinite(hit_z)
+    if not hit_mask.any():
+        print(f"[preprocess_motion_data] Scene raycast z alignment found no hits; using legacy offset {legacy_offset:.4f}")
+        return False
+
+    offsets = hit_z + float(clearance) - reference_joints[:, :, 2]
+    toe_local_indices = [reference_indices.index(index) for index in toe_indices if index in reference_indices]
+    toe_hit_mask = hit_mask[:, toe_local_indices] if toe_local_indices else hit_mask
+
+    if mode in {"sequence", "global"}:
+        offsets_for_max = np.where(hit_mask, offsets, -np.inf)
+        frame_max_offsets = np.max(offsets_for_max, axis=1)
+        valid_frames = np.isfinite(frame_max_offsets)
+        if not np.any(valid_frames):
+            print(
+                "[preprocess_motion_data] Scene raycast z alignment found no valid frames; "
+                f"using legacy offset {legacy_offset:.4f}"
+            )
+            return False
+
+        percentile = float(np.clip(global_percentile, 0.0, 100.0))
+        valid_frame_offsets = frame_max_offsets[valid_frames]
+        strict_nonpenetration_offset = float(np.max(valid_frame_offsets))
+        z_offset = float(np.percentile(valid_frame_offsets, percentile))
+        human_joints[:, :, 2] += z_offset
+        post_clearance = z_offset - offsets
+        valid_clearance = post_clearance[hit_mask]
+        penetration_refs = int(np.count_nonzero(valid_clearance < -1e-6))
+        penetration_frames = int(np.count_nonzero(np.any((post_clearance < -1e-6) & hit_mask, axis=1)))
+        print(
+            "[preprocess_motion_data] Scene raycast z alignment: "
+            f"mode=sequence references={len(reference_indices)} "
+            f"hit_frames={int(valid_frames.sum())}/{num_frames} "
+            f"hits={int(hit_mask.sum())}/{hit_mask.size} "
+            f"global_percentile={percentile:.1f} "
+            f"z_offset={z_offset:.4f} strict_nonpenetration_offset={strict_nonpenetration_offset:.4f} "
+            f"min_clearance={float(np.min(valid_clearance)):.4f} "
+            f"penetration_refs={penetration_refs} penetration_frames={penetration_frames}"
+        )
+        return True
+
+    if mode != "per_frame":
+        raise ValueError(f"Unsupported scene raycast z mode: {mode}")
+
+    valid_frames = hit_mask.any(axis=1)
+    toe_hit_frames = toe_hit_mask.any(axis=1)
+    frame_offsets = np.full(num_frames, legacy_offset, dtype=float)
+    offsets_for_max = np.where(hit_mask, offsets, -np.inf)
+    max_ref_offsets = np.max(offsets_for_max[valid_frames], axis=1)
+    frame_offsets[valid_frames] = np.maximum(0.0, max_ref_offsets)
+    frame_offsets[toe_hit_frames] = np.max(offsets_for_max[toe_hit_frames], axis=1)
+    human_joints[:, :, 2] += frame_offsets[:, None]
+    post_clearance = reference_joints[:, :, 2] + frame_offsets[:, None] - hit_z
+    min_clearance = float(np.nanmin(post_clearance[hit_mask]))
+    penetration_refs = int(np.count_nonzero((post_clearance < float(clearance) - 1e-6) & hit_mask))
+    print(
+        "[preprocess_motion_data] Scene raycast z alignment: "
+        f"mode=per_frame references={len(reference_indices)} "
+        f"hit_frames={int(valid_frames.sum())}/{num_frames} "
+        f"toe_hit_frames={int(toe_hit_frames.sum())}/{num_frames} "
+        f"hits={int(hit_mask.sum())}/{hit_mask.size} "
+        f"offset_range=({float(frame_offsets.min()):.4f}, {float(frame_offsets.max()):.4f}) "
+        f"fallback_frames={int((~valid_frames).sum())} "
+        f"min_clearance={min_clearance:.4f} penetration_refs={penetration_refs}"
+    )
+    return True
+
+
 def preprocess_motion_data(
     human_joints,
     retargeter,
@@ -212,6 +440,11 @@ def preprocess_motion_data(
     scale=0.714,
     mat_height=0.1,
     object_poses=None,
+    object_mesh_file: str | Path | None = None,
+    scene_raycast_z_alignment: bool = False,
+    scene_raycast_z_mode: RaycastZMode = "per_frame",
+    scene_raycast_z_clearance: float = 0.0,
+    scene_raycast_z_global_percentile: float = 95.0,
 ):
     """
     Preprocess human joints and object poses for retargeting.
@@ -226,16 +459,26 @@ def preprocess_motion_data(
     Returns:
         tuple: (human_joints_scaled, object_poses_scaled, object_moving_frame_idx).
     """
-    # Normalize human joint heights
     toe_indices = [
         retargeter.demo_joints.index(foot_names[0]),
         retargeter.demo_joints.index(foot_names[1]),
     ]
-    z_min = human_joints[:, toe_indices, 2].min()
-    if z_min >= mat_height:
-        # On a mat.
-        z_min -= mat_height
-    human_joints[:, :, 2] -= z_min
+    legacy_offset = _compute_legacy_toe_z_offset(human_joints, toe_indices, mat_height)
+    aligned_to_scene = False
+    if scene_raycast_z_alignment:
+        reference_indices = _scene_raycast_reference_indices(retargeter.demo_joints, toe_indices)
+        aligned_to_scene = _apply_scene_raycast_z_alignment(
+            human_joints,
+            toe_indices,
+            reference_indices,
+            object_mesh_file,
+            legacy_offset,
+            scene_raycast_z_mode,
+            scene_raycast_z_clearance,
+            scene_raycast_z_global_percentile,
+        )
+    if not aligned_to_scene:
+        human_joints[:, :, 2] += legacy_offset
 
     # Scale human joints
     human_joints = human_joints * scale

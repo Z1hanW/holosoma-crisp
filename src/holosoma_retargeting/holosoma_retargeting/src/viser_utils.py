@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import threading
 import time
-from typing import List, Tuple
+from typing import Callable, List, Tuple
 
 import numpy as np
 import viser  # type: ignore[import-not-found]
@@ -23,6 +23,7 @@ def create_motion_control_sliders(
     initial_fps: int = 30,
     initial_interp_mult: int = 2,
     loop: bool = True,
+    on_frame_update: Callable[[float, np.ndarray], None] | None = None,
 ) -> Tuple[List[viser.GuiInputHandle[int]], List[float]]:
     """
     Create a slider + play/pause controls and a background player thread with smooth, slerp-based interpolation.
@@ -127,7 +128,7 @@ def create_motion_control_sliders(
     updating_programmatically = {"flag": False}  # flag to prevent callback from pausing during programmatic updates
 
     # ---------------- draw ----------------
-    def _apply_frame_from_q(q: np.ndarray) -> None:
+    def _apply_frame_from_q(q: np.ndarray, frame_value: float | None = None) -> None:
         # joints -> ensure length
         joints = q[7 : 7 + robot_dof]
         if joints.shape[0] != robot_dof:
@@ -153,9 +154,12 @@ def create_motion_control_sliders(
             object_base_frame.position = np.zeros(3)
             object_base_frame.wxyz = np.array([1.0, 0.0, 0.0, 0.0])
 
+        if on_frame_update is not None:
+            on_frame_update(float(frame_slider.value) if frame_value is None else float(frame_value), q)
+
     def _apply_discrete_frame(i: int) -> None:
         i = int(np.clip(i, 0, n_frames - 1))
-        _apply_frame_from_q(qpos[i])
+        _apply_frame_from_q(qpos[i], float(i))
 
     # ---------------- controls ----------------
     @play_btn.on_click
@@ -213,7 +217,7 @@ def create_motion_control_sliders(
                     u = float(f - k0)
 
                     q_interp = _interp_frame(qpos, k0, k1, u)
-                    _apply_frame_from_q(q_interp)
+                    _apply_frame_from_q(q_interp, f)
 
                     # Update slider to show current frame number in real-time
                     # Use flag to prevent callback from pausing playback

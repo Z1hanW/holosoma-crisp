@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Literal
 
 
 @dataclass(frozen=True)
@@ -30,6 +31,13 @@ class TaskConfig:
     # Surface weight parameters for climbing object sampling (climbing task)
     # Used in weighted_surface_sampling: points with z-coordinate > threshold get high weight
     # This biases sampling toward top surfaces (important for climbing contact points)
+    object_point_mode: Literal["auto", "primitive_vertices_center", "surface_sample", "oriented_bbox"] = "auto"
+    # auto uses per-piece primitive vertices + centers when pieces/ or box_models/ exists,
+    # and falls back to legacy surface sampling for single-mesh objects.
+    object_sample_count: int = 100
+    # Used only by surface_sample / surface-sampling fallback.
+    max_vertices_per_primitive: int = 64
+    # If a primitive piece has more vertices than this, use its bbox corners + center.
     surface_weight_threshold: float = 0.9  # z-coordinate threshold for high-weight points
     surface_weight_high: int = 20  # Weight for top surface points (z > threshold)
     surface_weight_low: int = 1  # Weight for other points

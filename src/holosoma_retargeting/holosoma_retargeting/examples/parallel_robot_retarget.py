@@ -30,6 +30,7 @@ from holosoma_retargeting.config_types.robot import RobotConfig  # noqa: E402
 # Import reusable functions from robot_retarget.py
 from holosoma_retargeting.examples.robot_retarget import (  # type: ignore[import-not-found]  # noqa: E402
     DEFAULT_DATA_FORMATS,
+    apply_first_frame_scene_z_translation,
     build_retargeter_kwargs_from_config,
     create_task_constants,
     initialize_robot_pose,
@@ -169,6 +170,14 @@ def process_single_task(args):
         task_config,
         retargeter,
         augmentation,
+        first_frame_scene_z_translation,
+        first_frame_scene_z_clearance,
+        first_frame_scene_z_max_abs,
+        scene_raycast_z_alignment,
+        scene_raycast_z_mode,
+        scene_raycast_z_clearance,
+        scene_raycast_z_global_percentile,
+        climbing_motion_root_nominal,
     ) = args
 
     os.makedirs(save_dir, exist_ok=True)
@@ -243,8 +252,27 @@ def process_single_task(args):
             human_joints = preprocess_motion_data(human_joints, retargeter, toe_names, smpl_scale)
         elif task_type in {"object_interaction", "climbing"}:
             human_joints, object_poses, object_moving_frame_idx = preprocess_motion_data(
-                human_joints, retargeter, toe_names, scale=smpl_scale, object_poses=object_poses
+                human_joints,
+                retargeter,
+                toe_names,
+                scale=smpl_scale,
+                object_poses=object_poses,
+                object_mesh_file=constants.OBJECT_MESH_FILE if task_type == "climbing" else None,
+                scene_raycast_z_alignment=task_type == "climbing" and scene_raycast_z_alignment,
+                scene_raycast_z_mode=scene_raycast_z_mode,
+                scene_raycast_z_clearance=scene_raycast_z_clearance,
+                scene_raycast_z_global_percentile=scene_raycast_z_global_percentile,
             )
+            if task_type == "climbing" and first_frame_scene_z_translation:
+                apply_first_frame_scene_z_translation(
+                    human_joints,
+                    constants.OBJECT_MESH_FILE,
+                    smpl_scale,
+                    toe_names,
+                    retargeter.demo_joints,
+                    clearance=first_frame_scene_z_clearance,
+                    max_abs_translation=first_frame_scene_z_max_abs,
+                )
 
         # Extract foot sticking sequences
         foot_sticking_sequences = extract_foot_sticking_sequence_velocity(
@@ -289,6 +317,7 @@ def process_single_task(args):
                 is_augmentation_run,
                 save_dir,
                 task_name,
+                climbing_motion_root_nominal=climbing_motion_root_nominal,
             )
 
         # Check if file exists and skip retargeting if it does (after setting up conditions)
@@ -355,6 +384,14 @@ def main(cfg: ParallelRetargetingConfig) -> None:
             cfg.task_config,
             cfg.retargeter,
             cfg.augmentation,
+            cfg.first_frame_scene_z_translation,
+            cfg.first_frame_scene_z_clearance,
+            cfg.first_frame_scene_z_max_abs,
+            cfg.scene_raycast_z_alignment,
+            cfg.scene_raycast_z_mode,
+            cfg.scene_raycast_z_clearance,
+            cfg.scene_raycast_z_global_percentile,
+            cfg.climbing_motion_root_nominal,
         )
         for file_path in files
     ]

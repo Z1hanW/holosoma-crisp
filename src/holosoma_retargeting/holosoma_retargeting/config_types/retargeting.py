@@ -44,6 +44,30 @@ class RetargetingConfig:
     augmentation: bool = False
     """Whether to use augmentation."""
 
+    first_frame_scene_z_translation: bool = False
+    """Temporarily translate climbing human joints in z using frame-0 scene geometry clearance."""
+
+    first_frame_scene_z_clearance: float = 0.10
+    """Minimum clearance above frame-0 scene geometry for lower-body reference joints."""
+
+    first_frame_scene_z_max_abs: float = 0.0
+    """Optional absolute clamp for the first-frame z translation. 0 disables clamping."""
+
+    scene_raycast_z_alignment: bool = False
+    """For climbing data, align human joint z using -z ray hits against the scene mesh before scaling."""
+
+    scene_raycast_z_mode: Literal["per_frame", "sequence", "global"] = "per_frame"
+    """Raycast z alignment mode: per_frame adjusts each frame; sequence/global applies one global offset."""
+
+    scene_raycast_z_clearance: float = 0.0
+    """Additional clearance above the raycast scene hit, in the unscaled input frame."""
+
+    scene_raycast_z_global_percentile: float = 95.0
+    """Percentile of per-frame max raycast deficits used for sequence/global z alignment. Use 100 for strict non-penetration."""
+
+    climbing_motion_root_nominal: bool = False
+    """For climbing original runs, add a per-frame root nominal from the preprocessed human motion to prevent IK drift."""
+
     # --- Nested configs ---
     robot_config: RobotConfig = field(default_factory=lambda: RobotConfig(robot_type="g1"))
     """Robot configuration (nested - can override robot_urdf_file, robot_dof, etc.

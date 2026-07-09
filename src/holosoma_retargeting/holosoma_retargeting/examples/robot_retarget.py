@@ -15,6 +15,7 @@ from types import SimpleNamespace
 from typing import Literal
 
 import numpy as np
+import trimesh
 import tyro
 
 src_root = Path(__file__).resolve().parents[2]
@@ -334,7 +335,11 @@ def setup_object_data(
             raise ValueError("OBJECT_MESH_FILE not set for object_interaction task")
 
         object_local_pts, object_local_pts_demo = load_object_data(
-            constants.OBJECT_MESH_FILE, smpl_scale=smpl_scale, sample_count=100
+            constants.OBJECT_MESH_FILE,
+            smpl_scale=smpl_scale,
+            sample_count=task_config.object_sample_count,
+            point_mode=task_config.object_point_mode,
+            max_vertices_per_piece=task_config.max_vertices_per_primitive,
         )
         return object_local_pts, object_local_pts_demo, constants.OBJECT_URDF_FILE
 
@@ -359,7 +364,9 @@ def setup_object_data(
                 if p[2] > task_config.surface_weight_threshold
                 else task_config.surface_weight_low
             ),
-            sample_count=100,
+            sample_count=task_config.object_sample_count,
+            point_mode=task_config.object_point_mode,
+            max_vertices_per_piece=task_config.max_vertices_per_primitive,
         )
 
         if augmentation:
@@ -384,6 +391,91 @@ def setup_object_data(
         return object_local_pts, object_local_pts_demo, object_urdf_file
 
     raise ValueError(f"Unknown task type: {task_type}")
+
+
+def apply_first_frame_scene_z_translation(
+    human_joints: np.ndarray,
+    object_mesh_file: str | None,
+    smpl_scale: float,
+    toe_names: list[str],
+    demo_joints: list[str],
+    clearance: float = 0.10,
+    max_abs_translation: float = 0.0,
+    search_radii: tuple[float, ...] = (0.12, 0.20, 0.35, 0.50),
+) -> float:
+    """Temporarily translate scaled human joints in z using frame-0 terrain clearance."""
+    if object_mesh_file is None:
+        return 0.0
+
+    reference_keywords = ("foot", "toe", "ankle")
+    reference_indices = [
+        idx for idx, name in enumerate(demo_joints) if any(keyword in name.lower() for keyword in reference_keywords)
+    ]
+    for toe_name in toe_names:
+        if toe_name in demo_joints:
+            reference_indices.append(demo_joints.index(toe_name))
+    reference_indices = sorted(set(reference_indices))
+    if not reference_indices:
+        logger.warning("Skipping first-frame z translation: no foot/toe/ankle joints in demo joints")
+        return 0.0
+
+    mesh = trimesh.load(object_mesh_file, force="mesh")
+    vertices = np.asarray(mesh.vertices, dtype=float) * float(smpl_scale)
+    if vertices.size == 0:
+        logger.warning("Skipping first-frame z translation: no scene vertices in %s", object_mesh_file)
+        return 0.0
+
+    clearance_deficits: list[float] = []
+    clearance_info: list[tuple[str, float, float, float]] = []
+    for joint_idx in reference_indices:
+        joint_name = demo_joints[joint_idx]
+        joint_xyz = human_joints[0, joint_idx]
+        joint_xy = joint_xyz[:2]
+        best_scene_z = None
+        for radius in search_radii:
+            distances = np.linalg.norm(vertices[:, :2] - joint_xy, axis=1)
+            nearby = vertices[distances <= radius]
+            if nearby.size == 0:
+                continue
+            best_scene_z = float(np.percentile(nearby[:, 2], 95.0))
+            break
+        if best_scene_z is not None:
+            joint_clearance = float(joint_xyz[2]) - best_scene_z
+            clearance_deficit = clearance - joint_clearance
+            clearance_deficits.append(clearance_deficit)
+            clearance_info.append((joint_name, joint_clearance, best_scene_z, clearance_deficit))
+
+    if not clearance_deficits:
+        logger.warning(
+            "Skipping first-frame z translation: no terrain vertices near frame-0 reference joints in %s",
+            object_mesh_file,
+        )
+        return 0.0
+
+    raw_z_translation = float(max(clearance_deficits))
+    if max_abs_translation > 0.0:
+        z_translation = float(np.clip(raw_z_translation, -max_abs_translation, max_abs_translation))
+    else:
+        z_translation = raw_z_translation
+    human_joints[:, :, 2] += z_translation
+    worst_clearance_info = sorted(clearance_info, key=lambda item: item[1])[:4]
+    logger.info(
+        "Applied first-frame geometry-aware human z translation: %.4f m "
+        "(raw=%.4f, min_clearance=%.4f, reference_clearances=%s)",
+        z_translation,
+        raw_z_translation,
+        clearance,
+        [
+            {
+                "joint": joint_name,
+                "clearance": round(joint_clearance, 4),
+                "scene_z": round(scene_z, 4),
+                "deficit": round(deficit, 4),
+            }
+            for joint_name, joint_clearance, scene_z, deficit in worst_clearance_info
+        ],
+    )
+    return z_translation
 
 
 def _compute_q_init_base(
@@ -447,6 +539,33 @@ def _compute_q_init_base(
     return q_init_base
 
 
+def build_motion_root_nominal_list(
+    human_joints: np.ndarray,
+    demo_joints: list[str],
+    q_init: np.ndarray,
+    retargeter: InteractionMeshRetargeter,
+    root_joint_name: str = "Spine1",
+) -> np.ndarray:
+    """Build a per-frame q nominal whose floating base follows the input motion root."""
+    q_init_arr = np.asarray(q_init, dtype=float).reshape(-1)
+    q_nominal = np.zeros((human_joints.shape[0], retargeter.nq), dtype=float)
+    q_nominal[:, : min(q_init_arr.shape[0], retargeter.nq)] = q_init_arr[: min(q_init_arr.shape[0], retargeter.nq)]
+
+    if root_joint_name in demo_joints:
+        root_joint_idx = demo_joints.index(root_joint_name)
+    else:
+        root_joint_idx = 0
+
+    q_nominal[:, :3] = human_joints[:, root_joint_idx, :3]
+    for frame_idx in range(human_joints.shape[0]):
+        try:
+            q_nominal[frame_idx, 3:7] = estimate_human_orientation(human_joints, demo_joints, frame_idx=frame_idx)
+        except ValueError:
+            q_nominal[frame_idx, 3:7] = q_init_arr[3:7]
+
+    return q_nominal
+
+
 def convert_object_poses_to_mujoco_order(object_poses: np.ndarray) -> np.ndarray:
     """Convert object poses from [qw, qx, qy, qz, x, y, z] to MuJoCo order [x, y, z, qw, qx, qy, qz].
     Args:
@@ -490,6 +609,8 @@ def build_retargeter_kwargs_from_config(
         "debug": retargeter_config.debug,
         "w_nominal_tracking_init": retargeter_config.w_nominal_tracking_init,
         "allow_infeasible_fallback": retargeter_config.allow_infeasible_fallback,
+        "relax_init_trust_region": retargeter_config.relax_init_trust_region,
+        "root_nominal_position_tolerance": retargeter_config.root_nominal_position_tolerance,
     }
     if task_type == "climbing":
         kwargs["nominal_tracking_tau"] = retargeter_config.nominal_tracking_tau
@@ -509,6 +630,7 @@ def initialize_robot_pose(
     task_name: str,
     augmentation_translation: np.ndarray | None = None,
     augmentation_rotation: float | None = 0.0,
+    climbing_motion_root_nominal: bool = False,
 ) -> tuple[np.ndarray | None, np.ndarray | None, np.ndarray, np.ndarray, np.ndarray]:
     """Initialize robot pose (q_init, q_nominal) based on task.
     Returns qpos in MuJoCo order: [0:3] position, [3:7] quaternion, [7:] joints.
@@ -579,9 +701,17 @@ def initialize_robot_pose(
             object_poses = convert_object_poses_to_mujoco_order(object_poses)
             return q_nominal[0], q_nominal, object_poses, human_joints, object_poses
         q_init = _compute_q_init_base(task_type, data_format, human_joints, object_poses, constants, retargeter)
+        q_nominal = None
+        if climbing_motion_root_nominal:
+            q_nominal = build_motion_root_nominal_list(
+                human_joints,
+                retargeter.demo_joints,
+                q_init,
+                retargeter,
+            )
         # Convert object_poses to MuJoCo order
         object_poses = convert_object_poses_to_mujoco_order(object_poses)
-        return q_init, None, object_poses, human_joints, object_poses
+        return q_init, q_nominal, object_poses, human_joints, object_poses
 
     raise ValueError(f"Unknown task type: {task_type}")
 
@@ -687,7 +817,22 @@ def main(cfg: RetargetingConfig) -> None:
             toe_names,
             scale=smpl_scale,
             object_poses=object_poses,
+            object_mesh_file=constants.OBJECT_MESH_FILE if task_type == "climbing" else None,
+            scene_raycast_z_alignment=task_type == "climbing" and cfg.scene_raycast_z_alignment,
+            scene_raycast_z_mode=cfg.scene_raycast_z_mode,
+            scene_raycast_z_clearance=cfg.scene_raycast_z_clearance,
+            scene_raycast_z_global_percentile=cfg.scene_raycast_z_global_percentile,
         )
+        if task_type == "climbing" and cfg.first_frame_scene_z_translation:
+            apply_first_frame_scene_z_translation(
+                human_joints,
+                constants.OBJECT_MESH_FILE,
+                smpl_scale,
+                toe_names,
+                retargeter.demo_joints,
+                clearance=cfg.first_frame_scene_z_clearance,
+                max_abs_translation=cfg.first_frame_scene_z_max_abs,
+            )
 
     # Initialize robot pose
     q_init, q_nominal, object_poses_augmented, human_joints, object_poses = initialize_robot_pose(
@@ -702,6 +847,7 @@ def main(cfg: RetargetingConfig) -> None:
         save_dir,
         task_name,
         augmentation_translation=_AUGMENTATION_TRANSLATION,
+        climbing_motion_root_nominal=cfg.climbing_motion_root_nominal,
     )
 
     # Extract foot sticking sequences

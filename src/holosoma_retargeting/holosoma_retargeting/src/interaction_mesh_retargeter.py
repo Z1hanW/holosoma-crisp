@@ -62,6 +62,8 @@ class InteractionMeshRetargeter:
         w_nominal_tracking_init: float = 5.0,
         nominal_tracking_tau: float = 10.0,
         allow_infeasible_fallback: bool = False,
+        relax_init_trust_region: bool = True,
+        root_nominal_position_tolerance: float = 0.0,
     ):
         """This kinematic retargeter solves the diffIK problem with hard constraints in SQP style.
         During each SQP iteration, the problem is solved with the following constraints and costs:
@@ -174,6 +176,8 @@ class InteractionMeshRetargeter:
         self.nominal_tracking_tau = nominal_tracking_tau
         self.track_nominal_indices = task_constants.NOMINAL_TRACKING_INDICES
         self.allow_infeasible_fallback = allow_infeasible_fallback
+        self.relax_init_trust_region = relax_init_trust_region
+        self.root_nominal_position_tolerance = float(root_nominal_position_tolerance)
 
     def _init_foot_lock(self, foot_lock: FootLockConfig | None) -> None:
         """Initialize foot lock configuration and normalize window mappings."""
@@ -397,12 +401,21 @@ class InteractionMeshRetargeter:
         """
         num_frames = human_joint_motions.shape[0]
         if q_nominal_list is not None:
-            q_locked_list = q_nominal_list
+            q_locked_list = np.array(q_nominal_list, copy=True)
         else:
             q_locked_list = np.zeros((num_frames, self.nq))
-            q_locked_list[0, self.q_a_indices] = q_a_init
+            if q_a_init is None:
+                raise ValueError("q_a_init must be provided when q_nominal_list is None.")
+            q_a_init_arr = np.asarray(q_a_init).reshape(-1)
+            if q_a_init_arr.shape[0] != len(self.q_a_indices):
+                if q_a_init_arr.shape[0] >= int(self.q_a_indices.max()) + 1:
+                    q_a_init_arr = q_a_init_arr[self.q_a_indices]
+                else:
+                    raise ValueError(f"q_a_init has shape {q_a_init_arr.shape}, expected {len(self.q_a_indices)}")
+            q_locked_list[0, self.q_a_indices] = q_a_init_arr
 
-        q_locked_list[:, -7:] = object_poses_augmented
+        if self.has_dynamic_object:
+            q_locked_list[:, -7:] = object_poses_augmented
         q = np.copy(q_locked_list[0])
         retargeted_motions = [q]
         failed_frames: list[int] = []
@@ -705,6 +718,15 @@ class InteractionMeshRetargeter:
             rhs = self._self_collision_tolerance - phi
             constraints += [Ja_n @ dqa >= rhs]
 
+        if self.root_nominal_position_tolerance > 0 and q_a_nominal is not None:
+            if len(self.q_a_indices) >= 3 and np.array_equal(self.q_a_indices[:3], np.array([0, 1, 2])):
+                root_delta_target = q_a_nominal[:3] - q_a_n_last[:3]
+                tol = self.root_nominal_position_tolerance
+                constraints += [
+                    dqa[:3] >= root_delta_target - tol,
+                    dqa[:3] <= root_delta_target + tol,
+                ]
+
         # Joint limits constraints (actuated)
         if self.activate_joint_limits:
             constraints += [
@@ -713,7 +735,8 @@ class InteractionMeshRetargeter:
             ]
 
         # Step size constraints (Lorentz cone)
-        constraints += [cp.SOC(self.step_size, dqa)]
+        if self.step_size > 0:
+            constraints += [cp.SOC(self.step_size, dqa)]
 
         # Objective
         obj_terms = []
@@ -751,7 +774,7 @@ class InteractionMeshRetargeter:
             problem.solve(solver=cp.CLARABEL, **solver_kwargs)
         except cp.error.SolverError as exc:
             raise RuntimeError(f"CVXPY solver failed: {exc}") from exc
-        if (problem.status not in (cp.OPTIMAL, cp.OPTIMAL_INACCURATE)) and init_t:
+        if (problem.status not in (cp.OPTIMAL, cp.OPTIMAL_INACCURATE)) and init_t and self.relax_init_trust_region:
             constraints = [c for c in constraints if not isinstance(c, cp.constraints.second_order.SOC)]
             problem = cp.Problem(cp.Minimize(cp.sum(obj_terms)), constraints)
             try:

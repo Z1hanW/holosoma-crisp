@@ -25,6 +25,12 @@ class ViserConfig:
     object_urdf: str | None = None
     """Path to object URDF file (optional)."""
 
+    unscaled_object_urdf: str | None = None
+    """Path to an unscaled reference object/scene URDF file (optional)."""
+
+    hmr_joints_npy: str | None = None
+    """Path to original HMR world joints in .npy or .npz format (optional)."""
+
     fps: int = 30
     """Frames per second for playback."""
 
@@ -36,6 +42,27 @@ class ViserConfig:
 
     show_meshes: bool = True
     """Whether to show mesh visualizations."""
+
+    show_unscaled_scene: bool = True
+    """Whether to show the unscaled reference scene when provided."""
+
+    show_hmr: bool = True
+    """Whether to show original HMR joints when provided."""
+
+    show_hmr_skeleton: bool = True
+    """Whether to draw line segments between HMR joints when provided."""
+
+    show_scaled_human: bool = True
+    """Whether to show scaled human joints from the qpos npz when available."""
+
+    show_scaled_human_skeleton: bool = True
+    """Whether to draw line segments between scaled human joints when available."""
+
+    hmr_point_size: float = 0.035
+    """Point size for original HMR joint visualization."""
+
+    scaled_human_point_size: float = 0.035
+    """Point size for scaled human joint visualization."""
 
     grid_width: float = 8.0
     """Grid width for visualization."""

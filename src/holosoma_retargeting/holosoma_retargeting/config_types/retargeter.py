@@ -93,3 +93,9 @@ class RetargeterConfig:
 
     allow_infeasible_fallback: bool = False
     """Whether to keep the previous qpos when a frame solve is infeasible."""
+
+    relax_init_trust_region: bool = True
+    """Whether the first-frame solve may drop the SQP trust-region if initially infeasible."""
+
+    root_nominal_position_tolerance: float = 0.0
+    """If positive and q_nominal_list is provided, constrain floating-base xyz within this distance of nominal."""

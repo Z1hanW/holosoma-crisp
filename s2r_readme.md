@@ -1,8 +1,8 @@
 # CRISP S2R Pipeline
 
-Input to S2R is CRISP **z-up reconstruction** plus aligned HMR motion.
+Input is a CRISP z-up scene plus HMR SMPL-X joints in the same frame.
 
-## Need From CRISP
+Required files:
 
 ```text
 <crisp_zup_root>/<sequence>/gv/scene_mesh_sqs/
@@ -15,11 +15,7 @@ Input to S2R is CRISP **z-up reconstruction** plus aligned HMR motion.
   hps_track_smplx.npz
 ```
 
-The scene and HMR must already be in the same z-up frame.
-
-## 1. Prepare Retargeting Assets
-
-Convert CRISP z-up reconstruction into Holosoma climbing data:
+## Prepare Data
 
 ```bash
 python -m holosoma_retargeting.crisp.convert_zup_scene \
@@ -30,21 +26,22 @@ python -m holosoma_retargeting.crisp.convert_zup_scene \
   --validate
 ```
 
-This prepares:
+This writes:
 
 ```text
 demo_data/<dataset>/<sequence>/
   pieces/*.obj
   multi_boxes.obj
   multi_boxes.urdf
+  box_assets.xml
+  box_body.xml
   g1_29dof_spherehand_w_multi_boxes.xml
   <sequence>.npy
-  manifest.json
 ```
 
-`pieces/*.obj` are the per-piece collision geometry used by retargeting.
+Collision is per piece. `multi_boxes.obj` is only the merged terrain mesh.
 
-## 2. Retarget To G1
+## Retarget
 
 ```bash
 cd src/holosoma_retargeting/holosoma_retargeting
@@ -56,9 +53,17 @@ python examples/parallel_robot_retarget.py \
   --robot-config.robot-urdf-file models/g1/g1_29dof_spherehand.urdf \
   --task-config.object-name multi_boxes \
   --save_dir demo_results_parallel/g1/climbing/<dataset> \
-  --retargeter.no-activate-foot-sticking \
   --retargeter.allow-infeasible-fallback
 ```
+
+Scene Laplacian points default to `--task-config.object-point-mode auto`.
+For CRISP primitive scenes this uses every `pieces/*.obj` mesh's unique vertices
+plus its center. If a piece has more than
+`--task-config.max-vertices-per-primitive` vertices, it uses bbox corners plus
+center. If no pieces exist, it falls back to surface sampling.
+
+Use `--task-config.object-point-mode surface_sample` only for the old random
+surface-sampling behavior.
 
 Output:
 
@@ -68,9 +73,33 @@ demo_results_parallel/g1/climbing/<dataset>/<sequence>_original.npz
 
 Check `failed_frames` before training.
 
-## 3. Train Policy
+## Visualize
 
-With CRISP terrain:
+HMR with mesh proxy:
+
+```bash
+python scripts/viser_hmr_mesh.py \
+  --port 9302 \
+  --hmr-npz <crisp_hmr_root>/<sequence>/gv/hmr/hps_track_smplx.npz \
+  --terrain-obj <crisp_zup_root>/<sequence>/gv/scene_mesh_sqs/scene_mesh_sqs.obj \
+  --world-rotation <crisp_zup_root>/<sequence>/gv/scene_mesh_sqs/world_rotation.npy \
+  --shared-translation <crisp_zup_root>/<sequence>/gv/scene_mesh_sqs/shared_translation.txt
+```
+
+Retargeting overlap:
+
+```bash
+python scripts/viser_retarget_light.py \
+  --port 9303 \
+  --xml src/holosoma_retargeting/holosoma_retargeting/demo_data/<dataset>/<sequence>/g1_29dof_spherehand_w_multi_boxes_scaled_0.74_0.74_0.74.xml \
+  --terrain-obj src/holosoma_retargeting/holosoma_retargeting/demo_data/<dataset>/<sequence>/multi_boxes.obj \
+  --terrain-scale 0.7415730337 \
+  --qpos-npz src/holosoma_retargeting/holosoma_retargeting/demo_results_parallel/g1/climbing/<dataset>/<sequence>_original.npz \
+  --show-g1-mesh \
+  --align-g1-to-human-root
+```
+
+## Train
 
 ```bash
 scripts/train_crisp_s2r.sh \
@@ -81,17 +110,3 @@ scripts/train_crisp_s2r.sh \
   --algo.config.num-learning-iterations=30000 \
   --training.num-envs=4096
 ```
-
-Without terrain:
-
-```bash
-scripts/train_crisp_s2r.sh \
-  --retarget-npz src/holosoma_retargeting/holosoma_retargeting/demo_results_parallel/g1/climbing/<dataset>/<sequence>_original.npz \
-  --no-heightmap \
-  -- \
-  --algo.config.num-learning-iterations=30000 \
-  --training.num-envs=4096
-```
-
-The script converts retargeted `qpos` into Holosoma WBT motion data, then runs
-`src/holosoma/holosoma/train_agent.py`.
