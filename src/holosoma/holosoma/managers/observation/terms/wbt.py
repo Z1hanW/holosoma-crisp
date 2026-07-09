@@ -163,8 +163,8 @@ def depth_camera(
 
     The source sensor is IsaacLab's RayCasterCamera, which ray-casts against the
     static terrain mesh and exposes a depth image in ``sensor.data.output``. This
-    follows the far-tracking depth preprocessing convention: clamp to the sensor
-    range, resize, then normalize into roughly [-0.5, 0.5].
+    clamps to the sensor range, resizes, then normalizes into roughly
+    [-0.5, 0.5].
     """
     sensors = getattr(getattr(env.simulator, "scene", None), "sensors", {})
     if sensor_name not in sensors:

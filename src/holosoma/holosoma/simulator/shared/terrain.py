@@ -97,9 +97,9 @@ class Terrain(TerrainInterface):
     def _make_load_obj_floor(self, bounds: np.ndarray) -> trimesh.Trimesh:
         """Create a flat floor patch under a loaded OBJ terrain.
 
-        This mirrors the FAR tracking terrain convention where obstacle meshes
-        are combined with a floor patch, ensuring height-scanner rays always
-        hit terrain even just before or beside finite obstacle geometry.
+        This combines obstacle meshes with a floor patch, ensuring
+        height-scanner rays always hit terrain even just before or beside
+        finite obstacle geometry.
         """
         min_corner, max_corner = bounds.astype(np.float64)
         margin = max(float(self._cfg.load_obj_floor_margin), 0.0)

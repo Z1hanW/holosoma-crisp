@@ -508,7 +508,7 @@ class FootRaycastersCfg:
     """Grid size [x, y] in meters."""
 
     attach_yaw_only: bool = True
-    """Rotate the foot ray grid by yaw only, matching far-tracking's foothold raycasters."""
+    """Rotate the foot ray grid by yaw only for terrain-aligned foothold rays."""
 
     debug_vis: bool = False
     """Whether to visualize ray hits."""
@@ -541,9 +541,9 @@ class DepthCameraCfg:
     offset_rpy_deg: list[float] = field(default_factory=lambda: [0.0, 71.0, 0.0])
     """Camera roll, pitch, yaw offset in degrees using IsaacLab's robotics camera frame.
 
-    This is the far-tracking G1 mount rotation only. IsaacLab's pinhole pattern already
-    converts optical camera rays into the robotics camera frame, so far-tracking's
-    ``offset_rot_base=[-90, 0, -90]`` should not be applied again here.
+    This is the G1 mount rotation only. IsaacLab's pinhole pattern already
+    converts optical camera rays into the robotics camera frame, so an additional
+    optical-to-robotics frame rotation should not be applied again here.
     """
 
     width: int = 106
@@ -553,7 +553,7 @@ class DepthCameraCfg:
     """Raw ray-caster camera height in pixels."""
 
     horizontal_fov_deg: float = 101.41
-    """Horizontal field of view in degrees. Default matches far-tracking's ZED2i config."""
+    """Horizontal field of view in degrees."""
 
     min_range: float = 0.3
     """Minimum depth range used by observation normalization."""

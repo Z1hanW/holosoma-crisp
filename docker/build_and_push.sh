@@ -9,14 +9,19 @@
 #   bash docker/build_and_push.sh --dry-run        # print commands, do nothing
 #
 # Environment variables:
-#   ECR_REPO   — ECR registry URI (default: 982423663241.dkr.ecr.us-west-2.amazonaws.com)
+#   ECR_REPO   — target registry URI, for example account.dkr.ecr.region.amazonaws.com
 #   IMAGE_TAG  — override the date-based tag (default: YYYY_MMDD_HHMM)
 
 set -euo pipefail
 
 ROOT_REPO="$(realpath "$(dirname "$0")/..")"
-ECR_REPO="${ECR_REPO:-982423663241.dkr.ecr.us-west-2.amazonaws.com}"
+ECR_REPO="${ECR_REPO:-}"
 TAG="${IMAGE_TAG:-$(date +%Y_%m%d_%H%M)}"
+
+if [[ -z "$ECR_REPO" ]]; then
+  echo "Error: ECR_REPO must be set to the target registry URI." >&2
+  exit 1
+fi
 
 # ── Image definitions ────────────────────────────────────────────────
 # Each entry: "key|dockerfile|image_name|json_key"

@@ -26,7 +26,7 @@ install pattern is:
 
 ```bash
 python -m pip install -e src/holosoma_retargeting
-python -m pip install -e "src/holosoma[unitree,booster]"
+python -m pip install -e src/holosoma
 ```
 
 Training in IsaacSim/IsaacLab still requires the simulator dependencies described

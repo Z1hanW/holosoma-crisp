@@ -9,7 +9,7 @@ description = "Retargeting utilities for converting human motions to robot motio
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [
-    { name = "Amazon FAR Team" },
+    { name = "Holosoma Authors" },
 ]
 dependencies = [
     # Needs to ping numpy to 2.3.5;

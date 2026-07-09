@@ -4,7 +4,7 @@ setup(
     name="holosoma-retargeting",
     version="0.1.0",
     description="holosoma-retargeting: retargeting components for converting human motions to robot motions",
-    author="Amazon FAR Team",
+    author="Holosoma Authors",
     packages=find_packages(),
     python_requires=">=3.10",
     install_requires=[

@@ -53,15 +53,17 @@ pip install astor easydict ipdb joblib loguru lxml matplotlib meshcat omegaconf 
 # --- Install holosoma + extensions (--no-deps to skip numpy==1.23.5 pin) ---
 pip install --no-deps -e $ROOT_DIR/src/holosoma
 
-# Extensions (if present)
-EXT_DIR=$PROJECTS_DIR/FAR-HolosomaExtension/src/extensions
-for pkg in common x1_humanoid x1_humanoid_inference xdof_inference; do
-  PKG_DIR=$EXT_DIR/$pkg
-  if [[ -d $PKG_DIR && -f $PKG_DIR/pyproject.toml ]]; then
-    echo "Installing extension: $pkg"
-    pip install --no-deps -e $PKG_DIR
-  fi
-done
+# Optional external extensions.
+EXT_DIR="${HOLOSOMA_EXTENSION_DIR:-}"
+if [[ -n "$EXT_DIR" ]]; then
+  for pkg in ${HOLOSOMA_EXTENSION_PACKAGES:-common x1_humanoid x1_humanoid_inference xdof_inference}; do
+    PKG_DIR=$EXT_DIR/$pkg
+    if [[ -d $PKG_DIR && -f $PKG_DIR/pyproject.toml ]]; then
+      echo "Installing extension: $pkg"
+      pip install --no-deps -e $PKG_DIR
+    fi
+  done
+fi
 
 # Also install holosoma_inference if present
 if [[ -f $ROOT_DIR/src/holosoma_inference/pyproject.toml ]]; then

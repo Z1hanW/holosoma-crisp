@@ -22,7 +22,7 @@ root, install the source packages you need:
 
 ```bash
 python -m pip install -e src/holosoma_retargeting
-python -m pip install -e "src/holosoma[unitree,booster]"
+python -m pip install -e src/holosoma
 ```
 
 The commands below do not require a specific conda root or environment name. If

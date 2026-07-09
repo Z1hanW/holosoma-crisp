@@ -1,20 +1,18 @@
 import platform
 import sys
+from os import getenv
 
 from setuptools import find_packages, setup
 
 UNITREE_VERSION = "0.1.3"
-UNITREE_REPO = "https://github.com/amazon-far/unitree_sdk2"
 BOOSTER_VERSION = "0.1.0"
-BOOSTER_REPO = "https://github.com/amazon-far/booster_robotics_sdk"
 
 PLATFORM_MAP = {
     "x86_64": "linux_x86_64",
     "aarch64": "linux_aarch64",
 }
 
-# Supported Python cp tags — the SDK wheel build matrix publishes these tags.
-# Keep this list in sync with the wheel asset matrix on the amazon-far release.
+# Supported Python cp tags for the optional robot SDK wheel matrix.
 _SUPPORTED_PY_TAGS = {(3, 8), (3, 10), (3, 11), (3, 12)}
 _py = (sys.version_info.major, sys.version_info.minor)
 if _py not in _SUPPORTED_PY_TAGS:
@@ -27,19 +25,17 @@ cp_tag = f"cp{_py[0]}{_py[1]}"
 
 platform_tag = PLATFORM_MAP.get(platform.machine(), "linux_x86_64")
 
-unitree_extras = []
-unitree_url = (
-    f"{UNITREE_REPO}/releases/download/{UNITREE_VERSION}/"
-    f"unitree_sdk2-{UNITREE_VERSION}-{cp_tag}-{cp_tag}-{platform_tag}.whl"
-)
-unitree_extras.append(f"unitree_sdk2 @ {unitree_url}")
 
-booster_extras = []
-booster_url = (
-    f"{BOOSTER_REPO}/releases/download/{BOOSTER_VERSION}/"
-    f"booster_robotics_sdk-{BOOSTER_VERSION}-{cp_tag}-{cp_tag}-{platform_tag}.whl"
-)
-booster_extras.append(f"booster_robotics_sdk @ {booster_url}")
+def sdk_dependency(package_name: str, version: str, repo_env_var: str) -> str:
+    repo = getenv(repo_env_var, "").strip().rstrip("/")
+    if not repo:
+        return package_name
+    wheel = f"{package_name}-{version}-{cp_tag}-{cp_tag}-{platform_tag}.whl"
+    return f"{package_name} @ {repo}/releases/download/{version}/{wheel}"
+
+
+unitree_extras = [sdk_dependency("unitree_sdk2", UNITREE_VERSION, "HOLOSOMA_UNITREE_SDK2_REPO")]
+booster_extras = [sdk_dependency("booster_robotics_sdk", BOOSTER_VERSION, "HOLOSOMA_BOOSTER_SDK_REPO")]
 
 
 setup(
@@ -48,7 +44,7 @@ setup(
     description="holosoma-inference: inference components for humanoid robot policies",
     long_description="",
     long_description_content_type="text/markdown",
-    author="Amazon FAR Team",
+    author="Holosoma Authors",
     packages=find_packages(),
     python_requires=">=3.8",
     install_requires=[

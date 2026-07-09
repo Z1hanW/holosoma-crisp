@@ -32,7 +32,7 @@ For detailed hardware setup instructions, see the [Unitree Quick Start page](htt
 ### 2. Configure Network
 
 Configure your laptop's network interface:
-- IP Address: `192.168.123.224`
+- IP Address: `<g1-host-ip>`
 - Netmask: `255.255.255.0`
 
 ### 3. Find Your Network Interface
@@ -43,7 +43,7 @@ Identify which network interface is connected to the robot:
 ifconfig
 ```
 
-Look for the interface with IP `192.168.123.224`. Common names:
+Look for the interface with the configured G1 host IP. Common names:
 - `eth0` - Common Ethernet interface name
 - `enp0s31f6` - Modern Linux Ethernet naming
 
@@ -124,8 +124,8 @@ Run the policy directly on the robot's onboard Jetson computer for lower latency
 
 2. SSH to the onboard Jetson:
    ```bash
-   ssh unitree@192.168.123.164
-   # Default password: '123'
+   ssh unitree@<robot-jetson-ip>
+   # Enter the robot password when prompted.
    ```
 
 3. Set Jetson to maximum performance:
@@ -187,7 +187,7 @@ Run the policy inside a Docker container (works both onboard and offboard).
 
 ### Network Issues
 
-- **Cannot connect to robot**: Check that your IP is `192.168.123.224` and netmask is `255.255.255.0`
+- **Cannot connect to robot**: Check that your host IP and netmask match your robot and vendor network setup
 - **Wrong interface**: Use `ifconfig` to verify which interface is connected to the robot
 - **Connection drops**: Ensure Ethernet cable is properly connected and not damaged
 
