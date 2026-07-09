@@ -18,7 +18,7 @@ CONTAINER_NAME="holosoma-inference-container"
 IMAGE_NAME="holosoma-inference"
 
 # Mount bash history in the host filesystem in order to preserve history between containers
-HOLOSOMA_DEPS_DIR="$HOME/.holosoma_deps"
+HOLOSOMA_DEPS_DIR="${HOLOSOMA_DEPS_DIR:-$HOME/.holosoma_deps}"
 mkdir -p "$HOLOSOMA_DEPS_DIR"
 touch "$HOLOSOMA_DEPS_DIR/bash_history"
 

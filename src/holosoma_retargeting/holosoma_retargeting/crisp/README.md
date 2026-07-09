@@ -2,6 +2,17 @@
 
 This package converts CRISP z-up scene outputs into Holosoma climbing data.
 
+## Environment
+
+Use any Python environment with the required dependencies installed. From the
+repo root, either install the package:
+
+```bash
+python -m pip install -e src/holosoma_retargeting
+```
+
+or run commands with `PYTHONPATH=src/holosoma_retargeting`.
+
 ## Contract
 
 - Geometry is already z-up. The converter does not rotate, scale, or viewer-fix it.

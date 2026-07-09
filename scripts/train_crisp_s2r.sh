@@ -23,7 +23,7 @@ TERRAIN_SCALE="0.7415730337"
 HEIGHTMAP=1
 SKIP_CONVERT=0
 CONVERT_ONLY=0
-SKIP_SETUP=0
+SETUP_MODE="${CRISP_S2R_SETUP_MODE:-none}"
 TRAIN_ARGS=()
 LOGGER_ARG=""
 
@@ -44,7 +44,10 @@ Options:
   --no-heightmap        Train without loading CRISP terrain.
   --skip-convert        Reuse --motion-out.
   --convert-only        Prepare data and exit before training.
-  --skip-setup          Do not source Holosoma setup scripts.
+  --setup-mode MODE     Environment setup mode: none or holosoma. Default: none.
+                        none uses the active Python environment.
+                        holosoma sources scripts/source_*_setup.sh.
+  --skip-setup          Alias for --setup-mode none.
   -h, --help            Show this help.
 EOF
 }
@@ -100,8 +103,12 @@ while [[ $# -gt 0 ]]; do
       CONVERT_ONLY=1
       shift
       ;;
+    --setup-mode)
+      SETUP_MODE="$2"
+      shift 2
+      ;;
     --skip-setup)
-      SKIP_SETUP=1
+      SETUP_MODE="none"
       shift
       ;;
     -h|--help)
@@ -120,9 +127,12 @@ while [[ $# -gt 0 ]]; do
 done
 
 [[ -n "$RETARGET_NPZ" ]] || fail "--retarget-npz is required"
+[[ "$SETUP_MODE" == "none" || "$SETUP_MODE" == "holosoma" ]] || fail "--setup-mode must be 'none' or 'holosoma'"
 
 RETARGET_NPZ="$(realpath "$RETARGET_NPZ")"
 [[ -f "$RETARGET_NPZ" ]] || fail "Missing retarget npz: $RETARGET_NPZ"
+
+export PYTHONPATH="$REPO_ROOT/src/holosoma_retargeting:$REPO_ROOT/src/holosoma:$REPO_ROOT/src/holosoma_inference:${PYTHONPATH:-}"
 
 SEQ_NAME="$(basename "$RETARGET_NPZ")"
 SEQ_NAME="${SEQ_NAME%.npz}"
@@ -153,11 +163,13 @@ fi
 
 mkdir -p "$(dirname "$MOTION_OUT")"
 
-if [[ "$SKIP_SETUP" != "1" ]]; then
-  echo "[INFO] Sourcing retargeting setup for motion conversion"
+if [[ "$SETUP_MODE" == "holosoma" ]]; then
+  echo "[INFO] Sourcing Holosoma retargeting setup for motion conversion"
   # shellcheck disable=SC1091
   source "$REPO_ROOT/scripts/source_retargeting_setup.sh"
   pip install -e "$REPO_ROOT/src/holosoma_retargeting" --quiet
+else
+  echo "[INFO] Using active Python environment for motion conversion"
 fi
 
 if [[ "$SKIP_CONVERT" != "1" ]]; then
@@ -209,8 +221,8 @@ if [[ "$CONVERT_ONLY" == "1" ]]; then
   exit 0
 fi
 
-if [[ "$SKIP_SETUP" != "1" ]]; then
-  echo "[INFO] Sourcing IsaacSim setup for WBT training"
+if [[ "$SETUP_MODE" == "holosoma" ]]; then
+  echo "[INFO] Sourcing Holosoma IsaacSim setup for WBT training"
   cd "$REPO_ROOT"
   unset CONDA_ENV_NAME
   # shellcheck disable=SC1091
@@ -224,6 +236,8 @@ if [[ "$SKIP_SETUP" != "1" ]]; then
       pip install -e "$HOLOSOMA_DEPS_DIR/IsaacLab/source/isaaclab" --quiet
     rm /tmp/hs-build-constraints.txt
   fi
+else
+  echo "[INFO] Using active Python environment for WBT training"
 fi
 
 cd "$REPO_ROOT"

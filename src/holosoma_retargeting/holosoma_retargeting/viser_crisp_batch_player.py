@@ -26,7 +26,7 @@ class SequenceTrack:
     unscaled_scene_urdf: Path | None
 
 
-def _stair_key(name: str) -> tuple[int, str]:
+def _sequence_key(name: str) -> tuple[int, str]:
     if name.startswith("stair_"):
         try:
             return int(name.split("_", 1)[1]), name
@@ -37,8 +37,8 @@ def _stair_key(name: str) -> tuple[int, str]:
 
 def _discover_sequences(qpos_dir: Path, limit: int) -> list[str]:
     seqs = sorted(
-        [path.stem.removesuffix("_original") for path in qpos_dir.glob("stair_*_original.npz")],
-        key=_stair_key,
+        [path.stem.removesuffix("_original") for path in qpos_dir.glob("*_original.npz")],
+        key=_sequence_key,
     )
     if limit > 0:
         return seqs[:limit]
@@ -102,17 +102,17 @@ def _remove(handle) -> None:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Batch Viser player for CRISP stairs Holosoma retargeting outputs.")
+    parser = argparse.ArgumentParser(description="Batch Viser player for CRISP Holosoma retargeting outputs.")
     parser.add_argument("--port", type=int, default=9331)
-    parser.add_argument("--data-dir", type=Path, default=Path("demo_data/crisp_terrain_zup_motion_aligned"))
+    parser.add_argument("--data-dir", type=Path, default=Path("demo_data/crisp_dataset"))
     parser.add_argument(
         "--qpos-dir",
         type=Path,
-        default=Path("demo_results_parallel/g1/climbing/crisp_terrain_zup_motion_aligned_firstframe_geom_c010"),
+        default=Path("demo_results_parallel/g1/climbing/crisp_dataset"),
     )
     parser.add_argument("--robot-urdf", type=Path, default=Path("models/g1/g1_29dof_spherehand.urdf"))
     parser.add_argument("--sequences", nargs="+", default=None)
-    parser.add_argument("--initial-seq", default="stair_75")
+    parser.add_argument("--initial-seq", default="")
     parser.add_argument("--limit", type=int, default=0)
     parser.add_argument("--grid-width", type=float, default=20.0)
     parser.add_argument("--grid-height", type=float, default=20.0)
@@ -128,9 +128,9 @@ def main() -> int:
     if args.initial_seq in sequences:
         sequences = [args.initial_seq] + [seq for seq in sequences if seq != args.initial_seq]
     if not sequences:
-        raise FileNotFoundError(f"No stair qpos files found in {qpos_dir}")
+        raise FileNotFoundError(f"No qpos files found in {qpos_dir}")
 
-    server = viser.ViserServer(host="0.0.0.0", port=int(args.port), label="crisp_stairs_batch_player")
+    server = viser.ViserServer(host="0.0.0.0", port=int(args.port), label="crisp_batch_player")
     server.scene.set_up_direction("+z")
     server.gui.configure_theme(titlebar_content=None, control_layout="collapsible")
     server.scene.add_grid("/grid_z0", width=float(args.grid_width), height=float(args.grid_height), position=(0, 0, 0))

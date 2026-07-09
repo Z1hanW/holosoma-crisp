@@ -15,9 +15,24 @@ Required files:
   hps_track_smplx.npz
 ```
 
+## Environment
+
+Activate any Python environment with the required dependencies. From the repo
+root, install the source packages you need:
+
+```bash
+python -m pip install -e src/holosoma_retargeting
+python -m pip install -e "src/holosoma[unitree,booster]"
+```
+
+The commands below do not require a specific conda root or environment name. If
+you use the repository setup scripts, source them before running the commands;
+otherwise keep using your active environment.
+
 ## Prepare Data
 
 ```bash
+PYTHONPATH=src/holosoma_retargeting \
 python -m holosoma_retargeting.crisp.convert_zup_scene \
   --crisp-zup-root <crisp_zup_root> \
   --crisp-hmr-root <crisp_hmr_root> \
@@ -110,3 +125,7 @@ scripts/train_crisp_s2r.sh \
   --algo.config.num-learning-iterations=30000 \
   --training.num-envs=4096
 ```
+
+The training helper defaults to `--setup-mode none`, so it uses the active
+environment and does not source conda. Use `--setup-mode holosoma` only if you
+intentionally want the script to source this repository's setup scripts.

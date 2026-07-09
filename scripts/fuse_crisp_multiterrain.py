@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fuse paired CRISP stair motions and OBJ terrains for multi-terrain WBT.
+"""Fuse paired CRISP motions and OBJ terrains for multi-terrain WBT.
 
 The fused motion stays in each clip's local coordinate frame and carries a
 terrain_origins array. MotionCommand uses that array to bind each sampled motion
@@ -42,13 +42,13 @@ TIME_AXIS_KEYS = (
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--crisp-root", type=Path, default=Path("crisp_stairs"))
+    parser.add_argument("--crisp-root", type=Path, default=Path("crisp_dataset"))
     parser.add_argument("--motion-dir", type=Path)
     parser.add_argument("--geometry-dir", type=Path)
     parser.add_argument("--manifest", type=Path)
     parser.add_argument("--clips", type=str, default="")
     parser.add_argument("--output-dir", type=Path)
-    parser.add_argument("--prefix", type=str, default="motion_stairs_16_multiterrain")
+    parser.add_argument("--prefix", type=str, default="motion_multiterrain")
     parser.add_argument("--margin", type=float, default=2.0)
     parser.add_argument("--floor-margin", type=float, default=2.0)
     parser.add_argument("--floor-top-z", type=float, default=0.0)
@@ -283,7 +283,7 @@ def main() -> None:
     fused_mesh.export(terrain_out)
     metadata = {
         "schema_version": 1,
-        "format": "holosoma_crisp_stairs_multiterrain_fused",
+        "format": "holosoma_crisp_multiterrain_fused",
         "clip_count": len(records),
         "total_frames": int(total_frames),
         "cols": int(cols),

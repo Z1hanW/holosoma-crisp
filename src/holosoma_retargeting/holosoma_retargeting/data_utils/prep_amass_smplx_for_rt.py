@@ -230,13 +230,13 @@ def get_npz_files(amass_root_folder, subdataset_folder=None):
 class Config:
     """Configuration for processing AMASS SMPLX data."""
 
-    amass_root_folder: str = "/home/ubuntu/datasets/rt_ori_human_data/amass-smplx"
+    amass_root_folder: str = str(Path.home() / "datasets/rt_ori_human_data/amass-smplx")
     """Root folder containing AMASS SMPLX npz files."""
 
-    output_folder: str = "/home/ubuntu/datasets/rt_processed_data/amass-smplx-processed"
+    output_folder: str = str(Path.home() / "datasets/rt_processed_data/amass-smplx-processed")
     """Output folder for processed data."""
 
-    model_root_folder: str = "/home/ubuntu/datasets/rt_ori_human_data/smpl_all_models"
+    model_root_folder: str = str(Path.home() / "datasets/rt_ori_human_data/smpl_all_models")
     """Root folder containing SMPLX model files."""
 
     subdataset_folder: str | None = None
